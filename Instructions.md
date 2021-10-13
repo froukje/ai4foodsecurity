@@ -40,9 +40,9 @@ Login to mistral. Checkout the git repository there as well:
 
 Create the singularity image:
 
-1. Start an interactive session on any node with internet access (I used a node from the amd partition on `trial.dkrz.de`)
+1. Start an interactive session on any node with internet access (I used a node from the gpu partition on `mistral.dkrz.de`)
 2. Activate singularity module: `module load singularity`
-3. If you created your own docker image: `singularity pull docker://$USER_DOCKERHUB/ai4foodsecurity`
+3. If you created your own docker image: `singularity pull docker://$USER_DOCKERHUB/ai-4-food-security`
 
 This will create a file `TODO.sif` that is the singularity image.
 
