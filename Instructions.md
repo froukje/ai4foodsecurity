@@ -7,7 +7,9 @@ As explained in the documentation, it is not possible to directly create the ima
 
 The Dockerfile was written following https://towardsdatascience.com/conda-pip-and-docker-ftw-d64fe638dc45. The base image is centos 8.4.2105, the same OS as you find on the vader nodes.
 
-If you want to make any persistent changes, to the conda environment or by adding files to the container, you need to execute all of the following steps. If you want to use the existing image, jump to ... and follow instructions from there.
+If you want to make any persistent changes, to the conda environment or by adding files to the container, you need to execute all of the following steps. If you want to use the existing image, jump to https://gitlab.dkrz.de/aim/ai4foodsecurity/-/blob/main/Instructions.md#run-the-singularity-container and follow instructions from there.
+
+## Updating the Docker image
 
 ### Create the docker image
 
@@ -41,7 +43,6 @@ Create the singularity image:
 1. Start an interactive session on any node with internet access (I used a node from the amd partition on `trial.dkrz.de`)
 2. Activate singularity module: `module load singularity`
 3. If you created your own docker image: `singularity pull docker://$USER_DOCKERHUB/ai4foodsecurity`
-4. Alternatively, only if you want to use the existing docker image: `singularity pull docker://cadkrz/ai4foodsecurity`
 
 This will create a file `TODO.sif` that is the singularity image.
 
