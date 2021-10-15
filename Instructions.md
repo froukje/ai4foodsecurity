@@ -40,11 +40,11 @@ Login to mistral. Checkout the git repository there as well:
 
 Create the singularity image:
 
-1. Start an interactive session on any node with internet access (I used a node from the amd partition on `trial.dkrz.de`)
+1. Start an interactive session on any node with internet access (I used a node from the gpu partition on `mistral.dkrz.de`)
 2. Activate singularity module: `module load singularity`
-3. If you created your own docker image: `singularity pull docker://$USER_DOCKERHUB/ai4foodsecurity`
+3. Pull your docker image: `singularity pull docker://$USER_DOCKERHUB/ai-4-food-security`
 
-This will create a file `TODO.sif` that is the singularity image.
+Again, this takes some time. The process will create a file `ai-4-food-security_latest.sif` that is the singularity image.
 
 ## Run the singularity container
 
@@ -55,8 +55,9 @@ Create an allocation for an interactive job on any of the amd nodes
 1. `ssh trial.dkrz.de`
 2. `salloc --partition=amd --time=04:00:00 --exclusive -A ka1176`
 3. `ssh vader{N}` (use `squeue` to see where your interactive job is running)
-4. Start the singularity container: `singularity shell --nv --bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache --bind /mnt/lustre02/work/ka1176/:/swork /work/ka1176/caroline/gitlab/ai4eo-challenge/ai4eo_latest.sif`
-5. TODO conda environment
+4. Activate singularity module: `module load singularity`
+5. Start the singularity container: `singularity shell --nv --bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache --bind /mnt/lustre02/work/ka1176/:/swork /work/ka1176/caroline/gitlab/ai4foodsecurity/ai-4-food-security_latest.sif`
+6. TODO conda environment
 
 Explanation of the command line arguments to the `singularity` command:
 
