@@ -76,6 +76,16 @@ Explanation of the command line arguments to the `singularity` command:
 - `--bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache`: I had problems with some folders that are protected in the singularity container, and where my programs wanted to write to, mostly caches. I used `--bind` to direct them to my scratch directory.
 - `--bind /mnt/lustre02/work/ka1176/:/swork`: Makes our project directory on `/work/ka1176` available within the singularity container as `/swork`
 
+To check whether the environment works as intended: 
+
+```
+python # opens interactive python shell
+>>> import torch
+>>> torch.cuda.is_available() # should return True
+```
+
+
+
 ### From a script
 
 TODO
