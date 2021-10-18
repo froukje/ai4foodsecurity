@@ -58,7 +58,9 @@ Create an allocation for an interactive job on any of the amd nodes
 4. Activate singularity module: `module load singularity`
 5. Start the singularity container: 
 
-```singularity shell --nv --bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache --bind /mnt/lustre02/work/ka1176/:/swork /work/ka1176/caroline/gitlab/ai4foodsecurity/ai-4-food-security_latest.sif```
+```
+singularity shell --nv --bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache --bind /mnt/lustre02/work/ka1176/:/swork /work/ka1176/caroline/gitlab/ai4foodsecurity/ai-4-food-security_latest.sif
+```
 
 6. Activate the conda environment (unfortunately Docker and Singularity do not seem to be fully compatible here, the shell is not initialized correctly at first): 
 
