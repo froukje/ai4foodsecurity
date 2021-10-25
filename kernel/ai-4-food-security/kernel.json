@@ -1,0 +1,8 @@
+{
+ "argv": [
+  "/work/ka1176/caroline/gitlab/ai4foodsecurity/kernel/ai-4-food-security/start-kernel.sh",
+  "{connection_file}"
+ ],
+ "display_name": "ai-4-food-security",
+ "language": "python"
+}
