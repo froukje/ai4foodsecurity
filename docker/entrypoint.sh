@@ -1,4 +1,4 @@
 #!/bin/bash --login
 set -e
-conda activate $ENV_PREFIX
+conda activate ai4foodsecurity
 exec "$@"

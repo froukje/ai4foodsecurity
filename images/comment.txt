@@ -1,0 +1,3 @@
+Store your singularity image here or symlink to the one in shared data
+
+ln -s /work/ka1176/shared_data/singularity/images/ai-4-food-security_latest.sif
