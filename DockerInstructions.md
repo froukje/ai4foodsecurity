@@ -1,6 +1,6 @@
 ## Instructions
 
-Documentation for using singularity on mistral:
+Singularity is the way to use docker containers on HPC systems. Documentation for using singularity on mistral:
 https://www.dkrz.de/up/systems/mistral/singularity
 
 As explained in the documentation, it is not possible to directly create the image directly on mistral as it requires sudo. I created the docker image on my laptop (ubuntu 20.04 running via wsl 2)
