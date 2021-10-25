@@ -56,14 +56,33 @@ Create an allocation for an interactive job on any of the amd nodes
 2. `salloc --partition=amd --time=04:00:00 --exclusive -A ka1176`
 3. `ssh vader{N}` (use `squeue` to see where your interactive job is running)
 4. Activate singularity module: `module load singularity`
-5. Start the singularity container: `singularity shell --nv --bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache --bind /mnt/lustre02/work/ka1176/:/swork /work/ka1176/caroline/gitlab/ai4foodsecurity/ai-4-food-security_latest.sif`
-6. TODO conda environment
+5. Start the singularity container: 
 
-Explanation of the command line arguments to the `singularity` command:
+``` { .bash }
+singularity shell --nv --bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache --bind /mnt/lustre02/work/ka1176/:/swork /work/ka1176/caroline/gitlab/ai4foodsecurity/ai-4-food-security_latest.sif
 
-- `--nv` for activating the NVIDIA GPUs
-- `--bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache`: I had problems with some folders that are protected in the singularity container, and where my programs wanted to write to, mostly caches. I used `--bind` to direct them to my scratch directory.
-- `--bind /mnt/lustre02/work/ka1176/:/swork`: Makes our project directory on `/work/ka1176` available within the singularity container as `/swork`
+# --nv for activating the NVIDIA GPUs
+# --bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache: I had problems with some folders that are protected in the singularity container, and where my programs wanted to write to, mostly caches. I used --bind to direct them to my scratch directory.
+# --bind /mnt/lustre02/work/ka1176/:/swork: Makes our project directory on /work/ka1176 available within the singularity container as /swork
+```
+
+6. Activate the conda environment (unfortunately Docker and Singularity do not seem to be fully compatible here, the shell is not initialized correctly at first): 
+
+``` { .bash }
+conda init 
+source .bashrc
+conda activate ai4foodsecurity
+```
+
+To check whether the environment works as intended: 
+
+```
+python # opens interactive python shell
+>>> import torch
+>>> torch.cuda.is_available() # should return True
+```
+
+
 
 ### From a script
 
