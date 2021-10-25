@@ -2,7 +2,7 @@ FROM centos:centos8.4.2105
 
 ARG DOCKER_TAG
 
-ENV ENV_NAME=ai4food
+ENV ENV_NAME=ai4foodsecurity
 
 # the centos base image does not have wget
 RUN yum search wget
@@ -64,9 +64,9 @@ RUN mkdir $PROJECT_DIR
 WORKDIR $PROJECT_DIR
 
 # build the conda environment
-ENV ENV_PREFIX $PWD/env
+#ENV ENV_PREFIX $PWD/env
 RUN conda update --name base --channel defaults conda && \
-    conda env create --prefix $ENV_PREFIX --file /tmp/kernel-env-cuda11.yaml --force && \
+    conda env create --file /tmp/kernel-env-cuda11.yaml --force && \
     conda clean --all --yes
 
 ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]

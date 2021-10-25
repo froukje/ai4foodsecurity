@@ -1,4 +1,4 @@
-name: kernel-edc-gpu
+name: ai4foodsecurity
 channels:
   - conda-forge
   - defaults
