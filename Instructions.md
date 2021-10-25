@@ -36,7 +36,7 @@ This may take some time.
 Login to mistral. Checkout the git repository there as well:
 
 1. Checkout the git repository: `git clone git@gitlab.dkrz.de:aim/ai4foodsecurity.git`
-2. `cd ai4foodsecurity`
+2. `cd ai4foodsecurity/images`
 
 Create the singularity image:
 
@@ -59,7 +59,7 @@ Create an allocation for an interactive job on any of the amd nodes
 5. Start the singularity container: 
 
 ``` { .bash }
-singularity shell --nv --bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache --bind /mnt/lustre02/work/ka1176/:/swork /work/ka1176/caroline/gitlab/ai4foodsecurity/ai-4-food-security_latest.sif
+singularity shell --nv --bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache --bind /mnt/lustre02/work/ka1176/:/swork /work/ka1176/caroline/gitlab/ai4foodsecurity/images/ai-4-food-security_latest.sif
 
 # --nv for activating the NVIDIA GPUs
 # --bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache: I had problems with some folders that are protected in the singularity container, and where my programs wanted to write to, mostly caches. I used --bind to direct them to my scratch directory.
