@@ -2,3 +2,4 @@
 kernels/*
 .ipynb_checkpoints/*
 notebooks/data_exploration/.ipynb_checkpoints/*
+notebooks/starter_files/utils/__pycache__/
