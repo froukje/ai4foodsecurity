@@ -11,7 +11,7 @@ Log into https://jupyterhub.dkrz.de. Start a Jupyter session with the following 
     * Partition: shared / compute / gpu as required
     * Reservation: none
     * Time: as required
-    * Number of cores: depends on task
+    * Number of cores: as required
     * Memory: 32000 
     * User interface: select JupyterLab
 
