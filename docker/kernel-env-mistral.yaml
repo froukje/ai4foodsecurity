@@ -14,7 +14,7 @@ dependencies:
   - sh==1.14.2
   - radiant-mlhub==0.3.0
   # platform basic requirement
-  # - ipykernel=5.3.4
+  - ipykernel
 
   - pip
 
