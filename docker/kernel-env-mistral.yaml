@@ -1,0 +1,25 @@
+name: ai4foodsecurity-mistral
+channels:
+  - conda-forge
+  - defaults
+  - pytorch
+  - nvidia
+dependencies:
+  - pandas==1.0.1
+  - geopandas==0.8.2
+  - rasterio==1.1.8
+  - matplotlib==3.3.2
+  - sentinelhub==3.3.2
+  - numpy==1.19.5
+  - sh==1.14.2
+  - radiant-mlhub==0.3.0
+  # platform basic requirement
+  # - ipykernel=5.3.4
+
+  - pip
+
+    #  - pip:
+    #    # edc
+    #    # NOTE: it's probably ok to update these further in the future
+    #    - eo-learn  # available on conda, but not latest version
+    #    - breizhcrops==0.0.2.8
