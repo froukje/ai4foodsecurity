@@ -24,3 +24,23 @@ TODO: Instructions how to start the kernel
 ### Select the kernel
 
 Select the kernel `ai-4-food-security` and get started with your Jupyter Notebook!
+
+## Advanced: Setup kernel
+
+Create the Docker image from `Dockerfile-mistral` analogous to the directions given in DockerInstructions.md.
+
+```
+# on your laptop
+
+sudo docker tag ai-4-food-security-mistral cadkrz/ai-4-food-security-mistral
+sudo docker push cadkrz/ai-4-food-security-mistral
+```
+
+```
+# on a node in the amd partition (trial.dkrz.de)
+module load singularity
+cd /work/ka1176/shared_data/singularity/images/
+singularity pull -F docker://cadkrz/ai-4-food-security-mistral
+```
+
+Proceed with setup as described above (first-time user).
