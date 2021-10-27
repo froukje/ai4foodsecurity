@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Adapted from MarDATA training setup
+# Adapted from MarDATA training setup (Jakob Luettgau)
 
 # Add the training environment to user kernel. To see changes take affect do the follwoing:
 # 1) Users can run this script once from the standard jupyterlab
@@ -15,7 +15,7 @@ ln -s /work/ka1176/caroline/gitlab/ai4foodsecurity/kernel/ai-4-food-security
 
 
 echo "You are all set:"
-echo " * We added some juypter kernels to your environment (see ~/.local/share/jupyter/kernels)"
+echo " * We added the jupyter kernel ai-4-food-security to your environment (see ~/.local/share/jupyter/kernels)"
 echo ""
 echo "Have fun!"
 
