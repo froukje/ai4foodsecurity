@@ -21,6 +21,7 @@ If you want to make any persistent changes, to the conda environment or by addin
 `sudo docker image build -f Dockerfile-development -t ai-4-food-security ..`
 
 5. Check if the image was created correctly with `sudo docker image ls`. You should see an image with the repository name `ai-4-food-security` in the list (about 10 GB).
+6. For debugging the conda environment, run the container locally: `sudo docker run ai-4-food-security`
 
 ### Transfer the image to dockerhub
 
