@@ -19,7 +19,16 @@ Log into https://jupyterhub.dkrz.de. Start a Jupyter session with the following 
 
 Skip this step if you have the kernel installed already.
 
-TODO: Instructions how to start the kernel
+In JupyterLab, open a terminal.
+
+```
+cd $GIT_ROOTDIR # this is where you checked out your git repository
+cd kernel
+. setup_environment.sh
+```
+
+Refresh your browser window (`F5`) and you should have the kernel `ai-4-food-security` available. 
+
 
 ### Select the kernel
 
