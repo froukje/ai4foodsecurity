@@ -36,7 +36,7 @@ Select the kernel `ai-4-food-security` and get started with your Jupyter Noteboo
 
 ## Advanced: Setup kernel
 
-Create the Docker image from `Dockerfile-mistral` analogous to the directions given in DockerInstructions.md.
+Create the Docker image from `Dockerfile-mistral` analogous to the directions given in DockerInstructions.md. The only difference is the base image (ubuntu 16.04) and Python version 3.7 that are compatible with the OS on the older nodes. Here, we directly install the packages in the conda base environment.
 
 ```
 # on your laptop
