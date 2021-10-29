@@ -2,7 +2,7 @@
 
 IMAGE_ROOT=/work/ka1176/shared_data/singularity/images
 
-IMAGE_PATH=${IMAGE_ROOT}/ai-4-food-security_latest.sif
+IMAGE_PATH=${IMAGE_ROOT}/ai-4-food-security-mistral_latest.sif
 
 source /etc/profile
 module purge
