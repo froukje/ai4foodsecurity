@@ -37,7 +37,7 @@ class PlanetReader(torch.utils.data.Dataset):
         if label_ids is not None and not isinstance(label_ids, list):
             self.crop_ids=label_ids.tolist()
 
-        self.npyfolder = os.path.abspath(input_dir + "time_series")
+        self.npyfolder = os.path.join(input_dir, "time_series")
         self.labels = PlanetReader._setup(input_dir, label_dir, self.npyfolder, min_area_to_ignore)
 
 
