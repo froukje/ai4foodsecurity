@@ -21,6 +21,7 @@ If you want to make any persistent changes, to the conda environment or by addin
 `sudo docker image build -f Dockerfile-development -t ai-4-food-security ..`
 
 5. Check if the image was created correctly with `sudo docker image ls`. You should see an image with the repository name `ai-4-food-security` in the list (about 10 GB).
+6. For debugging the conda environment, run the container locally: `sudo docker run ai-4-food-security`
 
 ### Transfer the image to dockerhub
 
@@ -55,11 +56,13 @@ Create an allocation for an interactive job on any of the amd nodes
 1. `ssh trial.dkrz.de`
 2. `salloc --partition=amd --time=04:00:00 --exclusive -A ka1176`
 3. `ssh vader{N}` (use `squeue` to see where your interactive job is running)
-4. Activate singularity module: `module load singularity`
-5. Start the singularity container: 
+4. Get started: 
 
 ``` { .bash }
-singularity shell --nv --bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache --bind /mnt/lustre02/work/ka1176/:/swork /work/ka1176/caroline/gitlab/ai4foodsecurity/images/ai-4-food-security_latest.sif
+# activate singularity module
+module load singularity
+# start the container
+singularity shell --nv --bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache --bind /mnt/lustre02/work/ka1176/:/swork /work/ka1176/shared_data/singularity/images/ai-4-food-security_latest.sif
 
 # --nv for activating the NVIDIA GPUs
 # --bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache: I had problems with some folders that are protected in the singularity container, and where my programs wanted to write to, mostly caches. I used --bind to direct them to my scratch directory.
