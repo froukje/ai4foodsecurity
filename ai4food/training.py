@@ -44,6 +44,8 @@ def predict(x, y, model, criterion, device, eval_=True):
     y = y.to(device)
     x = x.to(device)
 
+    print(x.shape, y.shape)
+
     if eval_:
         with torch.no_grad():
             y_hat = model(x)
@@ -98,6 +100,9 @@ def main(args):
     data_loader=DataLoader(train_val_reader=planet_reader, validation_split=0.25)
     train_loader=data_loader.get_train_loader(batch_size=args.batch_size, num_workers=1)
     valid_loader=data_loader.get_validation_loader(batch_size=args.batch_size, num_workers=1)
+
+    print(f'train loader: {len(train_loader)*args.batch_size} samples in {len(train_loader)} batches')
+    print(f'valid loader: {len(valid_loader)*args.batch_size} samples in {len(train_loader)} batches')
    
     # set device to GPU, if available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -128,12 +133,14 @@ def main(args):
         print(f'\nEpoch: {epoch}')
         train_losses = []
         for idx, batch in enumerate(train_loader):
+            start_time2 = time.time()
             inputs, target, _, _ = batch
             loss, _ = predict(inputs, target, model, loss_criterion, device, eval_=False)
             train_losses.append(loss.detach().cpu().numpy())
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            print(f'{time.time() - start_time2:.2f} seconds / batch with {args.batch_size} samples')
 
         train_loss = np.mean(np.array(train_losses))
         all_train_losses.append(train_loss)
