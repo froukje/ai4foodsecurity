@@ -8,16 +8,10 @@ ENV ENV_NAME=ai4foodsecurity
 RUN apt-get update
 RUN apt-get install -y wget
 
-# Following the description here:
-# https://towardsdatascience.com/conda-pip-and-docker-ftw-d64fe638dc45
-
 SHELL [ "/bin/bash", "--login", "-c" ]
 
-# The kernel environment needs to be copied as root
-# Assumes the docker build context as the git project root directory
-COPY ./docker/kernel-env-mistral.yaml /tmp/
-
 # install miniconda (using fixed version)
+# Mistral GPUs -- Python 3.7 worked
 ENV CONDA_DIR $HOME/miniconda3
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py37_4.9.2-Linux-x86_64.sh -O ~/miniconda.sh  && \
     chmod +x ~/miniconda.sh && \
