@@ -89,7 +89,39 @@ python # opens interactive python shell
 
 ### From a script
 
-TODO
+Please adapt the following script, taken from `/work/ka1176/caroline/jobs/ai4food/prepare_data/submit_planet_5day_2.sh`.
+
+``` { .bash }
+#!/bin/bash
+#SBATCH -J extract
+#SBATCH -p amd
+#SBATCH -A ka1176
+#SBATCH --mem=0
+#SBATCH --exclusive
+#SBATCH --time=48:00:00
+#SBATCH --nodelist=vader3
+
+hostname
+
+module load /sw/spack-amd/spack/modules/linux-centos8-zen2/singularity/3.7.0-gcc-10.2.0
+
+# we will bind the folder /work/ka1176 to /swork in the singularity container
+gitdir_c=/work/ka1176/caroline/gitlab/ai4foodsecurity  # gitlab dir (change this to gitlab directory as it would appear in the container)
+scriptdir_c=/work/ka1176/caroline/jobs/ai4food/prepare_data # script dir (change this to current directory as it would appear in the container)
+
+# create run script for the job
+echo "echo 'HELLO BOX'" > singularity_run.sh
+echo "gitdir=$gitdir_c" >> singularity_run.sh
+echo "conda init" >> singularity_run.sh
+echo "source ~/.bashrc" >> singularity_run.sh
+echo "conda activate ai4foodsecurity" >> singularity_run.sh
+echo "echo \$gitdir" >> singularity_run.sh
+echo "cd \$gitdir/scripts" >> singularity_run.sh
+echo "python prepare_planet_data.py --n-processes 128 --five-day True --train-set 2" >> singularity_run.sh
+
+# execute the singularity container
+singularity exec --bind /mnt/lustre02/work/:/work /work/ka1176/shared_data/singularity/images/ai-4-food-security_latest.sif /bin/bash $scriptdir_c/singularity_run.sh
+```
 
 ### Starting NNI trials
 
