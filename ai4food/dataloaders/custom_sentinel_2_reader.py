@@ -46,7 +46,7 @@ class S2Reader(Dataset):
             self.crop_ids = label_ids.tolist()
 
         self.npyfolder = input_dir.replace(".zip", "/time_series")
-        self.labels = S2Reader._setup(input_dir, label_dir,self.npyfolder,min_area_to_ignore, include_cloud)
+        self.labels = S2Reader._setup(input_dir, label_dir,self.npyfolder,min_area_to_ignore, include_cloud, overwrite)
 
     def __len__(self):
         """
@@ -89,7 +89,7 @@ class S2Reader(Dataset):
         return image_stack, label, mask, feature.fid
 
     @staticmethod
-    def _setup(rootpath, labelgeojson, npyfolder, min_area_to_ignore=1000,include_cloud=False):
+    def _setup(rootpath, labelgeojson, npyfolder, min_area_to_ignore=1000,include_cloud=False, overwrite=False):
         """
          THIS FUNCTION PREPARES THE PLANET READER BY SPLITTING AND RASTERIZING EACH CROP FIELD AND SAVING INTO SEPERATE FILES FOR SPEED UP THE FURTHER USE OF DATA.
 
@@ -101,6 +101,8 @@ class S2Reader(Dataset):
          :param npyfolder: folder to save the field data for each field polygon
          :param min_area_to_ignore: threshold m2 to eliminate small agricultural fields less than a certain threshold. By default, threshold is 1000 m2
          :param include_cloud: It includes cloud probabilities inti image_stack if TRUE, othervise it saves the cloud info as sepeate array
+         :param overwrite: If TRUE, overwrite the previously setup data
+
          :return: labels of the saved fields
          """
 
@@ -141,9 +143,10 @@ class S2Reader(Dataset):
         for index, feature in tqdm(labels.iterrows(), total=len(labels), position=0, leave=True, desc="INFO: Extracting time series into the folder: {}".format(npyfolder)):
 
             npyfile = os.path.join(npyfolder, "fid_{}.npz".format(feature.fid))
-            if not os.path.exists(npyfile):
+            if overwrite or not os.path.exists(npyfile):
                 left, bottom, right, top = feature.geometry.bounds
                 window = rio.windows.from_bounds(left, bottom, right, top, transform)
+                print(window.height, window.width)
 
                 row_start = round(window.row_off)
                 row_end = round(window.row_off) + round(window.height)
