@@ -21,12 +21,17 @@ import rasterio as rio
 from rasterio import features
 from tqdm import tqdm
 
+from itertools import repeat
+from multiprocessing import Pool, RawArray
+import time
+
+var_dict= {} # global variable for the multiprocessing
 
 class S2Reader(Dataset):
     """
     THIS CLASS INITIALIZES THE DATA READER FOR SENTINEL-2 DATA
     """
-    def __init__(self, input_dir, label_dir, label_ids=None, transform=None, min_area_to_ignore = 1000, selected_time_points=None, include_cloud=False, overwrite=True):
+    def __init__(self, input_dir, label_dir, label_ids=None, transform=None, min_area_to_ignore = 1000, selected_time_points=None, include_cloud=False, overwrite=True, n_processes=1):
         '''
         THIS FUNCTION INITIALIZES DATA READER.
         :param input_dir: directory of input images in zip format
@@ -36,6 +41,7 @@ class S2Reader(Dataset):
         :param min_area_to_ignore: threshold m2 to eliminate small agricultural fields less than a certain threshold. By default, threshold is 1000 m2
         :param selected_time_points: If a sub set of the time series will be exploited, it can determine the index of those times in a given time series dataset
         :param overwrite: Overwrite the preprocessed data
+        :param n_processes: Parallel processing during setup (default: single core)
 
         :return: None
         '''
@@ -46,7 +52,7 @@ class S2Reader(Dataset):
             self.crop_ids = label_ids.tolist()
 
         self.npyfolder = input_dir.replace(".zip", "/time_series")
-        self.labels = S2Reader._setup(input_dir, label_dir,self.npyfolder,min_area_to_ignore, include_cloud, overwrite)
+        self.labels = S2Reader._setup(input_dir, label_dir,self.npyfolder,min_area_to_ignore, include_cloud, overwrite, n_processes)
 
     def __len__(self):
         """
@@ -89,7 +95,7 @@ class S2Reader(Dataset):
         return image_stack, label, mask, feature.fid
 
     @staticmethod
-    def _setup(rootpath, labelgeojson, npyfolder, min_area_to_ignore=1000,include_cloud=False, overwrite=False):
+    def _setup(rootpath, labelgeojson, npyfolder, min_area_to_ignore=1000,include_cloud=False, overwrite=False, n_processes=1):
         """
          THIS FUNCTION PREPARES THE PLANET READER BY SPLITTING AND RASTERIZING EACH CROP FIELD AND SAVING INTO SEPERATE FILES FOR SPEED UP THE FURTHER USE OF DATA.
 
@@ -102,6 +108,7 @@ class S2Reader(Dataset):
          :param min_area_to_ignore: threshold m2 to eliminate small agricultural fields less than a certain threshold. By default, threshold is 1000 m2
          :param include_cloud: It includes cloud probabilities inti image_stack if TRUE, othervise it saves the cloud info as sepeate array
          :param overwrite: If TRUE, overwrite the previously setup data
+         :param n_processes: Parallel processes for polygon extraction, default: 1
 
          :return: labels of the saved fields
          """
@@ -125,8 +132,8 @@ class S2Reader(Dataset):
             bands = np.concatenate([bands, clp], axis=-1) # concat cloud probability
         _, width, height, _ = bands.shape
 
-        bands = bands.transpose(0, 3, 1, 2)
-        clp = clp.transpose(0, 3, 1, 2)
+        bands = bands.transpose(0, 3, 1, 2).astype(np.float32)
+        clp = clp.transpose(0, 3, 1, 2).astype(np.float32)
 
         transform = rio.transform.from_bounds(minx, miny, maxx, maxy, width, height)
 
@@ -140,28 +147,78 @@ class S2Reader(Dataset):
         assert len(np.unique(crop_mask)) > 0, f"WARNING: Vectorized fid mask contains no fields. " \
                                               f"Does the label geojson {labelgeojson} cover the region defined by {rootpath}?"
 
-        for index, feature in tqdm(labels.iterrows(), total=len(labels), position=0, leave=True, desc="INFO: Extracting time series into the folder: {}".format(npyfolder)):
+        # prepare for multiprocessing
+        print('starting the multiprocessing preparation')
+        # https://research.wmz.ninja/articles/2018/03/on-sharing-large-arrays-when-using-pythons-html
+        p_bands = RawArray('f', bands.flatten().shape[0])
+        p_clp = RawArray('f', clp.flatten().shape[0])
+        p_fid_mask = RawArray('f', fid_mask.flatten().shape[0])
+        # wrap buffers as np arrays for easier manipulation
+        p_bands_np = np.frombuffer(p_bands, dtype=np.float32).reshape(bands.shape)
+        p_clp_np = np.frombuffer(p_clp, dtype=np.float32).reshape(clp.shape)
+        p_fid_mask_np = np.frombuffer(p_fid_mask, dtype=np.float32).reshape(fid_mask.shape)
+        # copy data to shared arrays
+        start_time = time.time()
+        np.copyto(p_bands_np, bands.astype(np.float32))
+        np.copyto(p_clp_np, clp.astype(np.float32))
+        np.copyto(p_fid_mask_np, fid_mask.astype(np.float32))
 
-            npyfile = os.path.join(npyfolder, "fid_{}.npz".format(feature.fid))
-            if overwrite or not os.path.exists(npyfile):
-                left, bottom, right, top = feature.geometry.bounds
-                window = rio.windows.from_bounds(left, bottom, right, top, transform)
-                print(window.height, window.width)
+        print(f'Copied data to shared arrays in {time.time() - start_time:.0f} seconds')
 
-                row_start = round(window.row_off)
-                row_end = round(window.row_off) + round(window.height)
-                col_start = round(window.col_off)
-                col_end = round(window.col_off) + round(window.width)
+        def init_worker(bands, bands_shape, clp, clp_shape, fid_mask, fid_mask_shape, npyfolder, transform, overwrite):
+            var_dict['bands'] = p_bands # raw array
+            var_dict['bands_shape'] = bands.shape # shape
+            var_dict['clp'] = p_clp # raw array
+            var_dict['clp_shape'] = clp.shape # shape
+            var_dict['fid_mask'] = p_fid_mask # raw array
+            var_dict['fid_mask_shape'] = fid_mask.shape # shape
+            var_dict['npyfolder'] = npyfolder
+            var_dict['transform'] = transform
+            var_dict['overwrite'] = overwrite
 
-                image_stack = bands[:, :, row_start:row_end, col_start:col_end]
-                cloud_stack =clp[:, :, row_start:row_end, col_start:col_end]
-                mask = fid_mask[row_start:row_end, col_start:col_end]
-                mask[mask != feature.fid] = 0
-                mask[mask == feature.fid] = 1
-                os.makedirs(npyfolder, exist_ok=True)
-                np.savez(npyfile, image_stack=image_stack.astype(np.float32), cloud_stack=cloud_stack.astype(np.float32), mask=mask.astype(np.float32), feature=feature.drop("geometry").to_dict())
+        initargs = (bands, bands.shape, clp, clp.shape, fid_mask, fid_mask.shape, npyfolder, transform, overwrite)
+
+        with Pool(n_processes, initializer=init_worker, initargs=initargs) as p:
+            print(f'Starting {n_processes} parallel processes')
+            start_time = time.time()
+            p.starmap(S2Reader._extract_field, labels.iterrows())
+            print(f'Finished setup in {(time.time() - start_time) / 60:.2f} minutes')
 
         return labels
+
+    @staticmethod
+    def _extract_field(index, feature):
+        '''
+        Separate function for extracting the individual polygons
+        For use with Pool
+        '''
+
+        # from buffer
+        bands = np.frombuffer(var_dict['bands'], dtype=np.float32).reshape(var_dict['bands_shape'])
+        clp = np.frombuffer(var_dict['clp'], dtype=np.float32).reshape(var_dict['clp_shape'])
+        fid_mask = np.frombuffer(var_dict['fid_mask'], dtype=np.float32).reshape(var_dict['fid_mask_shape'])
+        npyfolder = var_dict['npyfolder']
+        transform = var_dict['transform']
+        overwrite = var_dict['overwrite']
+
+        npyfile = os.path.join(npyfolder, "fid_{}.npz".format(feature.fid))
+        if overwrite or not os.path.exists(npyfile): 
+            left, bottom, right, top = feature.geometry.bounds
+            window = rio.windows.from_bounds(left, bottom, right, top, transform)
+
+            row_start = round(window.row_off)
+            row_end = round(window.row_off) + round(window.height)
+            col_start = round(window.col_off)
+            col_end = round(window.col_off) + round(window.width)
+
+            image_stack = bands[:, :, row_start:row_end, col_start:col_end]
+            cloud_stack =clp[:, :, row_start:row_end, col_start:col_end]
+            mask = fid_mask[row_start:row_end, col_start:col_end]
+            mask[mask != feature.fid] = 0
+            mask[mask == feature.fid] = 1
+            os.makedirs(npyfolder, exist_ok=True)
+            np.savez(npyfile, image_stack=image_stack.astype(np.float32), cloud_stack=cloud_stack.astype(np.float32), 
+                              mask=mask.astype(np.float32), feature=feature.drop("geometry").to_dict())
 
 if __name__ == '__main__':
     """
