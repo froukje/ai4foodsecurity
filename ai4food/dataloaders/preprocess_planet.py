@@ -100,12 +100,15 @@ def main(args):
     # set up paths
     if args.region == 'south-africa':
         train_dir = os.path.join(args.raw_data_dir, 'ref_fusion_competition_south_africa_train_source_planet')
-        train_dir_1 = os.path.join(train_dir, 'ref_fusion_competition_south_africa_train_source_planet_34S_19E_258N')
-        train_dir_2 = os.path.join(train_dir, 'ref_fusion_competition_south_africa_train_source_planet_34S_19E_259N')
         test_dir = os.path.join(args.raw_data_dir, 'ref_fusion_competition_south_africa_test_source_planet')
         if args.five_day:
             train_dir += '_5day'
             test_dir  += '_5day'
+            train_dir_1 = os.path.join(train_dir, 'ref_fusion_competition_south_africa_train_source_planet_5day_34S_19E_258N')
+            train_dir_2 = os.path.join(train_dir, 'ref_fusion_competition_south_africa_train_source_planet_5day_34S_19E_259N')
+        else:
+            train_dir_1 = os.path.join(train_dir, 'ref_fusion_competition_south_africa_train_source_planet_34S_19E_258N')
+            train_dir_2 = os.path.join(train_dir, 'ref_fusion_competition_south_africa_train_source_planet_34S_19E_259N')
 
         label_dir = os.path.join(args.raw_data_dir, 'ref_fusion_competition_south_africa_train_labels')
         label_dir_1 = os.path.join(label_dir, 'ref_fusion_competition_south_africa_train_labels_34S_19E_258N/labels.geojson')
