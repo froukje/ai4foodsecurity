@@ -7,7 +7,7 @@ As explained in the documentation, it is not possible to directly create the ima
 
 The Dockerfile was written following https://towardsdatascience.com/conda-pip-and-docker-ftw-d64fe638dc45. The base image is centos 8.4.2105, the same OS as you find on the vader nodes.
 
-If you want to make any persistent changes, to the conda environment or by adding files to the container, you need to execute all of the following steps. If you want to use the existing image, jump to https://gitlab.dkrz.de/aim/ai4foodsecurity/-/blob/main/Instructions.md#run-the-singularity-container and follow instructions from there.
+If you want to make any persistent changes, to the conda environment or by adding files to the container, you need to execute all of the following steps. If you want to use the existing image, jump to https://gitlab.dkrz.de/aim/ai4foodsecurity/-/blob/main/DockerInstructions.md#run-the-singularity-container and follow instructions from there.
 
 ## Updating the Docker image
 
