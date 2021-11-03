@@ -31,6 +31,7 @@ import copy
 import time
 from tqdm import tqdm
 
+
 def main(args):
    
     # read data
@@ -77,6 +78,9 @@ def main(args):
     data_loader=DataLoader(train_val_reader=planet_reader, validation_split=0.25)
     train_loader=data_loader.get_train_loader(batch_size=args.batch_size, num_workers=1)
     valid_loader=data_loader.get_validation_loader(batch_size=args.batch_size, num_workers=1)
+
+    print(f'train loader: {len(train_loader)*args.batch_size} samples in {len(train_loader)} batches')
+    print(f'valid loader: {len(valid_loader)*args.batch_size} samples in {len(train_loader)} batches')
    
     # set device to GPU, if available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -109,7 +113,6 @@ def main(args):
     
         train_loss = tveu.train_epoch(model, optimizer, loss_criterion, train_loader, device=device)
         train_loss = train_loss.cpu().detach().numpy()[0]
-        print(f'train_loss: {train_loss}')
         all_train_losses.append(train_loss)
 
         print(f'Training took {(time.time() - start_time) / 60:.2f} minutes, train_loss: {train_loss:.4}')
