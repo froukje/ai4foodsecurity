@@ -152,7 +152,7 @@ def main(args):
                                     label_ids=label_ids,
                                     transform=transform.transform,
                                     min_area_to_ignore=args.min_area_to_ignore,
-                                    overwrite=False,
+                                    overwrite=True,
                                     n_processes=args.n_processes)
 
         if is_train:
