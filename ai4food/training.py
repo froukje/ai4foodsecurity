@@ -8,6 +8,8 @@ except ImportError:
 import argparse
 import os
 import sys
+import evaluation_utils
+
 sys.path.append('../notebooks/starter_files/')
 from utils.data_transform import PlanetTransform
 from utils.planet_reader import PlanetReader
@@ -27,49 +29,20 @@ import geopandas as gpd
 import pandas as pd
 import copy
 import time
-
-
-def predict(x, y, model, criterion, device, eval_=True):
-    """
-    applies a model to some input data;
-    if eval_ is set to False the model is trained, else it is in inference mode
-    x: input data
-    y: target data
-    model: model
-    criterion: loss criterion
-    eval_: True / False model set to inference mode yes / no
-    """
-
-    device = device
-    y = y.to(device)
-    x = x.to(device)
-
-    if eval_:
-        with torch.no_grad():
-            y_hat = model(x)
-
-    else: 
-        y_hat = model(x)
-
-    loss = criterion(y_hat, y)
-
-    # get the predicted values off the GPU / off torch
-    if torch.cuda.is_available():
-        y_hat_values = y_hat.cpu().detach().numpy()
-    else:
-        y_hat_values = y_hat.detach().numpy()
-
-
-    return loss, y_hat_values
+from tqdm import tqdm
 
 def main(args):
    
     # read data
     train_data_dir = os.path.join(args.data_dir, args.input_dir)
     train_labels_dir = os.path.join(args.data_dir, args.label_dir)
-    
     train_labels = gpd.read_file(train_labels_dir)
 
+    # TODO read test data
+    #test_data_dir = os.path.join(args.data_dir, args.test_dir)
+    #test_labels_dir = os.path.join(args.data_dir, args.test_label_dir)
+    #test_labels = gpd.read_file(test_labels_dir)
+    
     # Get data transformer for planet images
     planet_transformer = PlanetTransform()
 
@@ -93,6 +66,12 @@ def main(args):
                                  label_ids=label_ids,
                                  transform=planet_transformer.transform,
                                  min_area_to_ignore=args.min_area_to_ignore)
+    # TODO read test data
+    #planet_reader_test = PlanetReader(input_dir=test_data_dir,
+    #                                label_dir=test_labels_dir,
+    #                                label_ids=label_ids,
+    #                                transform=planet_transformer.transform,
+    #                                min_area_to_ignore=args.min_area_to_ignore)
 
     #Initialize data loaders
     data_loader=DataLoader(train_val_reader=planet_reader, validation_split=0.25)
@@ -120,48 +99,40 @@ def main(args):
     patience_count = 0
     all_train_losses = []
     all_valid_losses = []
+    log_scores= []
 
     for epoch in range(args.max_epochs):
         # train
         model.train()
         start_time = time.time()
         print(f'\nEpoch: {epoch}')
-        train_losses = []
-        for idx, batch in enumerate(train_loader):
-            inputs, target, _, _ = batch
-            loss, _ = predict(inputs, target, model, loss_criterion, device, eval_=False)
-            train_losses.append(loss.detach().cpu().numpy())
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-        train_loss = np.mean(np.array(train_losses))
+    
+        train_loss = tveu.train_epoch(model, optimizer, loss_criterion, train_loader, device=device)
+        train_loss = train_loss.cpu().detach().numpy()[0]
+        print(f'train_loss: {train_loss}')
         all_train_losses.append(train_loss)
+
         print(f'Training took {(time.time() - start_time) / 60:.2f} minutes, train_loss: {train_loss:.4}')
         start_time = time.time()
 
         # validation
-        model.eval()
-        valid_losses, preds, targets = [], [], []
-        for idx, batch in enumerate(valid_loader):
-            inputs, target, _, _ = batch
-            # last batch may be too small
-            if len(target) < args.batch_size:
-                continue
-            loss, pred = predict(inputs, target, model, loss_criterion, device, eval_=True)
-            valid_losses.append(loss.detach().cpu().numpy())
-            preds.append(pred)
-            targets.append(target)
-       
-        valid_loss = np.mean(np.array(valid_losses))
+        valid_loss, y_true, y_pred, *_ = tveu.validation_epoch(model, loss_criterion, valid_loader, device=device)
+        valid_loss = valid_loss.cpu().detach().numpy()[0]
         all_valid_losses.append(valid_loss)
-        targets = np.stack(targets)
+
+        # calculate metrics
+        scores = evaluation_utils.metrics(y_true.cpu(), y_pred.cpu())
+        scores_msg = ", ".join([f"{k}={v:.2f}" for (k, v) in scores.items()])
+        scores["epoch"] = epoch
+        scores["train_loss"] = train_loss
+        scores["valid_loss"] = valid_loss
+        log_scores.append(scores)
         print(f'Validation took {(time.time() - start_time) / 60:.2f} minutes, valid_loss: {valid_loss:.4f}')
-       
+
         # early stopping
         if valid_loss < best_loss:
             best_model = copy.deepcopy(model)
-            best_preds = preds
+            best_preds = y_pred
             patience_count = 0
         else:
             patience_count += 1
@@ -172,7 +143,8 @@ def main(args):
         
         # save checkpoints
         save_model_path = os.path.join(args.target_dir, 'best_model.pt')
-        torch.save(best_model.state_dict(), save_model_path)
+        torch.save(dict(model_state=model.state_dict(),optimizer_state=optimizer.state_dict(), epoch=epoch, log=log_scores)
+                , save_model_path)
         print(f'saved best model to {save_model_path}')
         
         # save training and validation history
@@ -182,14 +154,71 @@ def main(args):
         with open(os.path.join(args.target_dir, 'valid_losses.txt'), 'w') as f:
             for vl in all_valid_losses:
                 f.write(f'{vl:.4f}\n')
+       
+        print(f"\nINFO: Epoch {epoch}: train_loss {train_loss:.2f}, valid_loss {valid_loss:.2f} " + scores_msg) 
 
+        # make predictions
+        if args.save_preds=='valid' or args.save_preds=='test':
+
+            print(f'\nINFO: saving predictions from the {args.save_preds} set')
+            if os.path.exists(save_model_path):
+                checkpoint = torch.load(save_model_path)
+                START_EPOCH = checkpoint["epoch"]
+                log = checkpoint["log"]
+                model.load_state_dict(checkpoint["model_state"])
+                model.eval()
+                print(f"INFO: Resuming from {save_model_path}, epoch {START_EPOCH}")
+
+                # list of dictionaries with predictions:
+                output_list=[]
+                softmax=torch.nn.Softmax()
+        
+                if args.save_preds == 'valid':
+                    valid_loader=data_loader.get_validation_loader(batch_size=1, num_workers=1)
+                else:
+                    # TODO save predictions from test set
+                    pass
+
+                with torch.no_grad():
+                    with tqdm(enumerate(valid_loader), total=len(valid_loader), position=0, leave=True) as iterator:
+                        for idx, batch in iterator:
+
+                            X, y_true, _, fid = batch
+                            logits = model(X.to(device))
+                            predicted_probabilities = softmax(logits).cpu().detach().numpy()[0]
+                            predicted_class = np.argmax(predicted_probabilities)
+    
+                            output_list.append({'fid': fid.cpu().detach().numpy(),
+                                'crop_id': label_ids[predicted_class],
+                                'crop_name': label_names[predicted_class],
+                                'crop_probs': predicted_probabilities})
+    
+                #  save predictions into output json:
+                if args.save_preds == 'valid':
+                    output_name = os.path.join(args.target_dir, '34S-20E-259N-2017-validation.json')
+                else:
+                    output_name = os.path.join(args.target_dir, '34S-20E-259N-2017-submission.json')
+                output_frame = pd.DataFrame.from_dict(output_list)
+                output_frame.to_json(output_name)
+                print(f'Validation / Submission was saved to location: {(output_name)}')
+
+            else:
+                print('INFO: no best model found ...')
+
+#def make_predictions(model, dataloader, loss_criterion, device, args):
+#    _, y_true, y_pred, *_ = tveu.validation_epoch(model, loss_criterion, dataloader, device=device)
+#    print(y_pred)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data-dir', type=str, default='/work/shared_data/2021-ai4food/raw_data')
     parser.add_argument('--target-dir', type=str, default='.')
     parser.add_argument('--input-dir', type=str, default='ref_fusion_competition_south_africa_train_source_planet_5day')
+    parser.add_argument('--test-dir', type=str, default='ref_fusion_competition_south_africa_test_source_planet_5day')
     parser.add_argument('--label-dir', type=str, default='ref_fusion_competition_south_africa_train_labels/ref_fusion_competition_south_africa_train_labels_34S_19E_258N/labels.geojson')
+    #parser.add_argument('--test-label-dir', type=str, default='ref_fusion_competition_south_africa_test_labels/ref_fusion_competition_south_africa_test_labels_34S_20E_259N/labels.geojson')
+    # parameter to save predictions from validation or tet set
+    parser.add_argument('--save_preds', type=str, default='', choices=['valid', 'test']) 
     parser.add_argument('--max-epochs', type=int, default=10)
     parser.add_argument('--patience', type=int, default=5)
     parser.add_argument('--checkpoint-epoch', type=int, default=5)
@@ -205,4 +234,5 @@ if __name__ == '__main__':
     print('end args keys / value\n')
 
     main(args)
+
 
