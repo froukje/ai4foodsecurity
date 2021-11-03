@@ -31,11 +31,12 @@ class S2Reader(Dataset):
     """
     THIS CLASS INITIALIZES THE DATA READER FOR SENTINEL-2 DATA
     """
-    def __init__(self, input_dir, label_dir, label_ids=None, transform=None, min_area_to_ignore = 1000, selected_time_points=None, include_cloud=False, overwrite=True, n_processes=1):
+    def __init__(self, input_dir, label_dir, output_dir=None, label_ids=None, transform=None, min_area_to_ignore = 1000, selected_time_points=None, include_cloud=False, overwrite=True, n_processes=1):
         '''
         THIS FUNCTION INITIALIZES DATA READER.
         :param input_dir: directory of input images in zip format
         :param label_dir: directory of ground-truth polygons in GeoJSON format
+        :param output_dir: directory where to store the zipped processes patches
         :param label_ids: an array of crop IDs in order. if the crop labels in GeoJSON data is not started from index 0 it can be used. Otherwise it is not required.
         :param transform: data transformer function for the augmentation or data processing
         :param min_area_to_ignore: threshold m2 to eliminate small agricultural fields less than a certain threshold. By default, threshold is 1000 m2
@@ -55,7 +56,10 @@ class S2Reader(Dataset):
         if label_ids is not None and not isinstance(label_ids, list):
             self.crop_ids = label_ids.tolist()
 
-        self.npyfolder = input_dir.replace(".zip", "/time_series")
+        if output_dir is None:
+            self.npyfolder = input_dir.replace(".zip", "/time_series")
+        else:
+            self.npyfolder = output_dir
         self.labels = S2Reader._setup(input_dir, label_dir,self.npyfolder,min_area_to_ignore, include_cloud, overwrite, n_processes)
 
     def __len__(self):
@@ -77,6 +81,7 @@ class S2Reader(Dataset):
             try:
                 object = np.load(npyfile)
                 image_stack = object["image_stack"]
+                cloud_stack = object["cloud_stack"]
                 mask = object["mask"]
             except zipfile.BadZipFile:
                 print("ERROR: {} is a bad zipfile...".format(npyfile))
@@ -85,7 +90,7 @@ class S2Reader(Dataset):
             print("ERROR: {} is a missing...".format(npyfile))
             raise
 
-        if self.data_transform is not None:
+        if self.data_transform is not None: # TODO add cloud_stack option here (filter, interpolate, ...)
             image_stack, mask = self.data_transform(image_stack, mask)
 
         if self.selected_time_points is not None:

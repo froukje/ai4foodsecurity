@@ -13,66 +13,79 @@ import h5py
 import custom_sentinel_2_reader as CS2Reader
 from custom_data_transform import Sentinel2Transform
 
+import time
+import datetime
+
 def extend_dataset(reader, keys, raw_ds):
     '''
     Extend a given raw_ds by iterating reader with keys
     '''
 
+    start_time = time.time()
+
     for i,sample in enumerate(reader):
+        if i%100 == 0:
+            print(f'Processed 100 samples in {time.time() - start_time:.0f} seconds')
+            start_time = time.time()
         for key in keys:
             if key == 'image_stack':
-               raw_ds[key].extend(sample[0])
+               raw_ds[key].extend(sample[0].numpy())
             elif key == 'label':
                raw_ds[key].append(sample[1])
             elif key == 'mask':
-               raw_ds[key].extend(sample[2])
+               raw_ds[key].extend(sample[2].numpy())
             elif key == 'fid':
                raw_ds[key].append(sample[3])
             else:
                raise ValueError(f'Invalid key: {key}')
 
-
     return raw_ds
 
-
-def save_dataset(raw_ds, filename):
+def save_dataset(raw_ds, keys, image_size, filename):
     '''Save raw_ds to filename (hdf5)'''
 
-    n_samples = len(raw_ds[keys[0]])
+    n_samples = len(raw_ds['label'])
     print(f'Total samples available in {filename}: {n_samples}')
 
     image_dims = (76, 12, image_size, image_size,)
+    chunk_size = 1000
     mask_dims  = (image_size, image_size,)
 
     # save
-    h5_file = h5py.File(os.path.join(args.target_data_dir, filename, 'w'))
+    h5_file = h5py.File(os.path.join(args.target_data_dir, filename), 'w')
     for key in keys:
+        print(key)
         if key == 'image_stack':
+            shape = (n_samples,) + image_dims
             h5_file.create_dataset(key,
-                                   shape=(n_samples,) + image_dims,
-                                   chunks=(chunk_size) + image_dims,
+                                   shape=shape,
+                                   chunks=(chunk_size,) + image_dims,
                                    fletcher32=True,
                                    dtype='float32')
+            vals = np.array(raw_ds[key]).reshape(shape)
         elif key == 'label':
             h5_file.create_dataset(key,
                                    shape=(n_samples,), 
-                                   chunks=(chunk_size), 
+                                   chunks=(chunk_size,), 
                                    fletcher32=True,
                                    dtype='int')
-                                   
+            vals = np.array(raw_ds[key])
         elif key == 'mask':
+            shape = (n_samples,) + mask_dims
             h5_file.create_dataset(key,
-                                   shape=(n_samples,) + mask_dims,
-                                   chunks=(chunk_size) + mask_dims,
+                                   shape=shape,
+                                   chunks=(chunk_size,) + mask_dims,
                                    fletcher32=True,
                                    dtype='float32')
+            vals = np.array(raw_ds[key]).reshape(shape)
         elif key == 'fid':
             h5_file.create_dataset(key,
                                    shape=(n_samples,), 
-                                   chunks=(chunk_size), 
+                                   chunks=(chunk_size,), 
                                    fletcher32=True,
                                    dtype='int')
-        h5_file[key][:] = raw_ds[key]
+            vals = np.array(raw_ds[key])
+        h5_file[key][:] = vals
         h5_file.flush()
     h5_file.attrs['time_created'] = str(datetime.datetime.now())
     print(f'closing {filename}')
@@ -104,6 +117,9 @@ def main(args):
 
         list_source = ...
         list_labels = ...
+        list_targets = ...
+        list_is_train = ...
+        list_comment = ...
 
     # Get the transformer
     # TODO provide the Sentinel2Transform
@@ -149,8 +165,7 @@ def main(args):
     for reader in train_readers:
         raw_ds = extend_dataset(reader, keys, raw_ds)
 
-    save_dataset(raw_ds, 'train_data.h5')
-
+    save_dataset(raw_ds, keys, args.t_image_size, 'train_data.h5')
 
     # process all test data sets
     raw_ds = {key:[] for key in keys}
@@ -158,7 +173,7 @@ def main(args):
     for reader in test_readers:
         raw_ds = extend_dataset(reader, keys, raw_ds)
 
-    save_dataset(raw_ds, 'test_data.h5')
+    save_dataset(raw_ds, keys, args.t_image_size, 'test_data.h5')
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
