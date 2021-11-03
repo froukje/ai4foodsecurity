@@ -17,13 +17,19 @@ class EarthObservationDataset(Dataset):
 
     def __init__(self, args):
         self.args = args
+        self.h5_file = h5py.File(os.path.join(self.args.dev_data_dir, f'{args.split}_data.h5'), 'r')
 
     def __len__(self):
         return len(self.labels) 
 
     def __getitem__(self, idx):
-        pass
+        X = self.X[idx]
+        label = self.labels[idx]
+        mask = self.mask[idx]
 
+        X[~mask] = self.args.fill_value
+
+        return X, label
 
 class Sentinel2Dataset(EarthObservationDataset):
     '''
@@ -39,32 +45,23 @@ class Sentinel2Dataset(EarthObservationDataset):
     super().__init__()
 
     def __init__(self, args): 
-        self.args = args
-
-        h5_file = h5py.File(os.path.join(self.args.dev_data_dir, f'{args.split}_data.h5'), 'r')
-
-        self.X = h5_file['image_stack'][:]
-        self.mask = h5_file['mask'][:].astype(bool)
-        self.feature = h5_file['feature'][:]
-        self.labels = h5_file['labels'][:]
+        self.X = self.h5_file['image_stack'][:]
+        self.mask = self.h5_file['mask'][:].astype(bool)
+        self.feature = self.h5_file['feature'][:]
+        self.labels = self.h5_file['labels'][:]
 
         # add NDVI
         if args.ndvi:
             ndvi = _calc_ndvi(self.X)
-            self.X = np.concatenate(self.X, ndvi, axis=1)
+            self.X = np.concatenate([self.X, ndvi], axis=1)
 
 
     def __len__(self):
-        return len(self.labels) 
+        return super().__len__(self)
 
     def __getitem__(self, idx):
-        X = self.X[idx]
-        label = self.labels[idx]
-        mask = self.mask[idx]
-
-        X[~mask] = self.args.fill_value
-
-        return X, label
+        return super().__getitem__(self, idx)
+        
 
     @staticmethod
     def _calc_ndvi(X):
