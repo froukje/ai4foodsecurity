@@ -20,20 +20,28 @@ import rasterio as rio
 from rasterio import features
 from tqdm import tqdm
 
+from itertools import repeat
+from multiprocessing import Pool, RawArray
+import time
+
+var_dict= {} # global variable for the multiprocessing
 
 class S1Reader(Dataset):
     """
     THIS CLASS INITIALIZES THE DATA READER FOR SENTINEL-1 DATA
     """
-    def __init__(self, input_dir, label_dir, label_ids=None, transform=None, min_area_to_ignore = 1000, selected_time_points=None):
+    def __init__(self, input_dir, label_dir, output_dir=None, label_ids=None, transform=None, min_area_to_ignore = 1000, selected_time_points=None, include_cloud=False, overwrite=True, n_processes=1):
         '''
         THIS FUNCTION INITIALIZES DATA READER.
         :param input_dir: directory of input images in zip format
         :param label_dir: directory of ground-truth polygons in GeoJSON format
+        :param output_dir: directory where to store the zipped processes patches
         :param label_ids: an array of crop IDs in order. if the crop labels in GeoJSON data is not started from index 0 it can be used. Otherwise it is not required.
         :param transform: data transformer function for the augmentation or data processing
         :param min_area_to_ignore: threshold m2 to eliminate small agricultural fields less than a certain threshold. By default, threshold is 1000 m2
         :param selected_time_points: If a sub set of the time series will be exploited, it can determine the index of those times in a given time series dataset
+        :param overwrite: Overwrite the preprocessed data
+        :param n_processes: Parallel processing during setup (default: single core)
 
         :return: None
         '''
@@ -44,8 +52,11 @@ class S1Reader(Dataset):
         if label_ids is not None and not isinstance(label_ids, list):
             self.crop_ids = label_ids.tolist()
 
-        self.npyfolder = input_dir.replace(".zip", "/time_series")
-        self.labels = S1Reader._setup(input_dir, label_dir,self.npyfolder,min_area_to_ignore)
+        if output_dir is None:
+            self.npyfolder = input_dir.replace(".zip", "/time_series")
+        else:
+            self.npyfolder = output_dir
+        self.labels = S1Reader._setup(input_dir, label_dir,self.npyfolder,min_area_to_ignore, overwrite, n_processes)
 
     def __len__(self):
         """
@@ -89,19 +100,23 @@ class S1Reader(Dataset):
 
 
     @staticmethod
-    def _setup(rootpath, labelgeojson, npyfolder, min_area_to_ignore=1000):
+    def _setup(rootpath, labelgeojson, npyfolder, min_area_to_ignore=1000, overwrite=False, n_processes=1):
         """
         THIS FUNCTION PREPARES THE PLANET READER BY SPLITTING AND RASTERIZING EACH CROP FIELD AND SAVING INTO SEPERATE FILES FOR SPEED UP THE FURTHER USE OF DATA.
 
-        This utility function unzipps a dataset and performs a field-wise aggregation.
-        results are written to a .npz cache with same name as zippath
+         This utility function unzipps a dataset and performs a field-wise aggregation.
+         results are written to a .npz cache with same name as zippath
 
-        :param rootpath: directory of input images
-        :param labelgeojson: directory of ground-truth polygons in GeoJSON format
-        :param npyfolder: folder to save the field data for each field polygon
-        :param min_area_to_ignore: threshold m2 to eliminate small agricultural fields less than a certain threshold. By default, threshold is 1000 m2
-        :return: labels of the saved fields
-        """
+         :param rootpath: directory of input images in ZIP format
+         :param labelgeojson: directory of ground-truth polygons in GeoJSON format
+         :param npyfolder: folder to save the field data for each field polygon
+         :param min_area_to_ignore: threshold m2 to eliminate small agricultural fields less than a certain threshold. By default, threshold is 1000 m2
+         :param overwrite: If TRUE, overwrite the previously setup data
+         :param n_processes: Parallel processes for polygon extraction, default: 1
+
+         :return: labels of the saved fields
+         """
+
 
         with open(os.path.join(rootpath, "bbox.pkl"), 'rb') as f:
             bbox = pickle.load(f)
