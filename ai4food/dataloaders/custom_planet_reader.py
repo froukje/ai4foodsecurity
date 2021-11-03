@@ -113,12 +113,31 @@ class PlanetReader(Dataset):
         :return: labels of the saved fields
         """
 
-        inputs = glob.glob(input_dir + '/*/*.tif', recursive=True)
+        '''
+        I had to fix some things in the planet data reader.
+
+        * Inputs: Use glob to only look for sr.tif, the superresolution images. 
+          qa.tif is also contained, but it has a different number of channels
+          From the data set description, these do not seem so relevant
+        * Transform: All planet data is stored in one folder. 
+          But we need to use the right transform, that actually should be decided on the
+          label location. Therefore tif_idx is changed when we are in the bottom patch of the
+          South Africa dataset
+
+          -- CA 03.11.21
+
+
+        '''
+        inputs = glob.glob(input_dir + '/*/sr.tif', recursive=True)
         tifs = sorted(inputs)
         labels = gpd.read_file(label_dir)
 
         # read coordinate system of tifs and project labels to the same coordinate reference system (crs)
-        with rio.open(tifs[0]) as image:
+        tif_idx = 0
+        if '34S_19E_259N' in label_dir:
+            tif_idx = -1
+        
+        with rio.open(tifs[tif_idx]) as image:
             crs = image.crs
             print('INFO: Coordinate system of the data is: {}'.format(crs))
             transform = image.transform
@@ -132,28 +151,27 @@ class PlanetReader(Dataset):
         # prepare for multiprocessing
         print('starting the multiprocessing preparation')
         # https://research.wmz.ninja/articles/2018/03/on-sharing-large-arrays-when-using-pythons-html
-        p_tifs = RawArray('f', tifs.flatten().shape[0])
-        # wrap buffers as np arrays for easier manipulation
-        p_tifs_np = np.frombuffer(p_tifs, dtype=np.float32).reshape(tifs.shape)
+        #p_tifs = RawArray('f', tifs.flatten().shape[0])
+        ## wrap buffers as np arrays for easier manipulation
+        #p_tifs_np = np.frombuffer(p_tifs, dtype=np.float32).reshape(tifs.shape)
         # copy data to shared arrays
         start_time = time.time()
-        np.copyto(p_tifs_np, tifs.astype(np.float32))
+        #np.copyto(p_tifs_np, tifs.astype(np.float32))
 
         print(f'Copied data to shared arrays in {time.time() - start_time:.0f} seconds')
 
-        def init_worker(tifs, tifs_shape, npyfolder, transform, overwrite):
-            var_dict['tifs'] = p_tifs # raw array
-            var_dict['tifs_shape'] = tifs.shape # shape
+        def init_worker(input_dir, npyfolder, transform, overwrite):
+            var_dict['input_dir'] = input_dir
             var_dict['npyfolder'] = npyfolder
             var_dict['transform'] = transform
             var_dict['overwrite'] = overwrite
 
-        initargs = (tifs, tifs.shape, npyfolder, transform, overwrite)
+        initargs = (input_dir, npyfolder, transform, overwrite)
 
         with Pool(n_processes, initializer=init_worker, initargs=initargs) as p:
             print(f'Starting {n_processes} parallel processes')
             start_time = time.time()
-            p.starmap(S2Reader._extract_field, labels.iterrows())
+            p.starmap(PlanetReader._extract_field, labels.iterrows())
             print(f'Finished setup in {(time.time() - start_time) / 60:.2f} minutes')
 
         return labels
@@ -167,20 +185,23 @@ class PlanetReader(Dataset):
         '''
 
         # from buffer
-        tifs = np.frombuffer(var_dict['tifs'], dtype=np.float32).reshape(var_dict['tifs_shape'])
+        input_dir = var_dict['input_dir']
         npyfolder = var_dict['npyfolder']
         transform = var_dict['transform']
         overwrite = var_dict['overwrite']
 
+        inputs = glob.glob(input_dir + '/*/sr.tif', recursive=True)
+        tifs = sorted(inputs)
+
         npyfile = os.path.join(npyfolder, "fid_{}.npz".format(feature.fid))
 
         if overwrite or not os.path.exists(npyfile):
+            #print('Starting with', feature.fid)
 
             left, bottom, right, top = feature.geometry.bounds
             window = rio.windows.from_bounds(left, bottom, right, top, transform)
 
             # reads each tif in tifs on the bounds of the feature. shape T x D x H x W
-            tmp = [rio.open(tif).read(window=window) for tif in tifs]
             image_stack = np.stack([rio.open(tif).read(window=window) for tif in tifs])
 
             with rio.open(tifs[0]) as src:
@@ -201,5 +222,3 @@ class PlanetReader(Dataset):
             #mask[mask == feature.fid] = 1
             os.makedirs(npyfolder, exist_ok=True)
             np.savez(npyfile, image_stack=image_stack, mask=mask, feature=feature.drop("geometry").to_dict())
-
-            return labels
