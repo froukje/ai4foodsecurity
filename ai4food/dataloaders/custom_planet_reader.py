@@ -119,10 +119,16 @@ class PlanetReader(Dataset):
         * Inputs: Use glob to only look for sr.tif, the superresolution images. 
           qa.tif is also contained, but it has a different number of channels
           From the data set description, these do not seem so relevant
-        * Transform: All planet data is stored in one folder. 
-          But we need to use the right transform, that actually should be decided on the
-          label location. Therefore tif_idx is changed when we are in the bottom patch of the
-          South Africa dataset
+        * Transform: All planet data was stored in one folder. 
+          In the folder 
+          /work/ka1176/shared_data/2021-ai4food/raw_data/ref_fusion_competition_south_africa_train_source_planet
+          I created the two new subfolders
+
+          ** ref_fusion_competition_south_africa_train_source_planet_34S_19E_258N
+          ** ref_fusion_competition_south_africa_train_source_planet_34S_19E_259N
+
+          and moved the individual tif folders accordingly. This way we use the right transform. 
+          If this is not done, wrong images will be read from the patches from the wrong region (x2 in tifs)
 
           -- CA 03.11.21
 
@@ -134,8 +140,8 @@ class PlanetReader(Dataset):
 
         # read coordinate system of tifs and project labels to the same coordinate reference system (crs)
         tif_idx = 0
-        if '34S_19E_259N' in label_dir:
-            tif_idx = -1
+        #if '34S_19E_259N' in label_dir:
+        #    tif_idx = -1
         
         with rio.open(tifs[tif_idx]) as image:
             crs = image.crs

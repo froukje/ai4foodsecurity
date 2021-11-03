@@ -49,8 +49,8 @@ def save_dataset(raw_ds, keys, image_size, filename):
     n_samples = len(raw_ds['label'])
     print(f'Total samples available in {filename}: {n_samples}')
 
-    image_dims = (488, 4, image_size, image_size,)
-    chunk_size = 1000
+    image_dims = (244, 4, image_size, image_size,)
+    chunk_size = 100
     mask_dims  = (image_size, image_size,)
 
     # save
@@ -100,6 +100,8 @@ def main(args):
     # set up paths
     if args.region == 'south-africa':
         train_dir = os.path.join(args.raw_data_dir, 'ref_fusion_competition_south_africa_train_source_planet')
+        train_dir_1 = os.path.join(train_dir, 'ref_fusion_competition_south_africa_train_source_planet_34S_19E_258N')
+        train_dir_2 = os.path.join(train_dir, 'ref_fusion_competition_south_africa_train_source_planet_34S_19E_259N')
         test_dir = os.path.join(args.raw_data_dir, 'ref_fusion_competition_south_africa_test_source_planet')
         if args.five_day:
             train_dir += '_5day'
@@ -111,7 +113,7 @@ def main(args):
         label_dir = os.path.join(args.raw_data_dir, 'ref_fusion_competition_south_africa_test_labels')
         label_dir_T = os.path.join(label_dir, 'ref_fusion_competition_south_africa_test_labels_34S_20E_259N/labels.geojson')
 
-        list_source = [train_dir, train_dir, test_dir]
+        list_source = [train_dir_1, train_dir_2, test_dir]
         list_labels = [label_dir_1, label_dir_2, label_dir_T]
         list_targets = [os.path.join(args.target_data_dir, tt) for tt in ['train_1', 'train_2', 'test']]
         list_is_train = [True, True, False]
