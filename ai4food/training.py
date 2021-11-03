@@ -8,7 +8,7 @@ except ImportError:
 import argparse
 import os
 import sys
-import evaluation_utils
+from evaluation_utils import metrics, save_predictions
 
 sys.path.append('../notebooks/starter_files/')
 from utils.data_transform import PlanetTransform
@@ -29,7 +29,6 @@ import geopandas as gpd
 import pandas as pd
 import copy
 import time
-from tqdm import tqdm
 
 
 def main(args):
@@ -124,7 +123,7 @@ def main(args):
         all_valid_losses.append(valid_loss)
 
         # calculate metrics
-        scores = evaluation_utils.metrics(y_true.cpu(), y_pred.cpu())
+        scores = metrics(y_true.cpu(), y_pred.cpu())
         scores_msg = ", ".join([f"{k}={v:.2f}" for (k, v) in scores.items()])
         scores["epoch"] = epoch
         scores["train_loss"] = train_loss
@@ -160,57 +159,17 @@ def main(args):
        
         print(f"\nINFO: Epoch {epoch}: train_loss {train_loss:.2f}, valid_loss {valid_loss:.2f} " + scores_msg) 
 
-        # make predictions
+        # make predictions   
         if args.save_preds=='valid' or args.save_preds=='test':
+            if args.save_preds == 'valid':
+                test_loader=data_loader.get_validation_loader(batch_size=1, num_workers=1)
+            else:
+                # TODO save predictions from test set
+                pass
 
             print(f'\nINFO: saving predictions from the {args.save_preds} set')
-            if os.path.exists(save_model_path):
-                checkpoint = torch.load(save_model_path)
-                START_EPOCH = checkpoint["epoch"]
-                log = checkpoint["log"]
-                model.load_state_dict(checkpoint["model_state"])
-                model.eval()
-                print(f"INFO: Resuming from {save_model_path}, epoch {START_EPOCH}")
+            save_predictions(save_model_path, model, test_loader, device, label_ids, label_names, args)
 
-                # list of dictionaries with predictions:
-                output_list=[]
-                softmax=torch.nn.Softmax()
-        
-                if args.save_preds == 'valid':
-                    valid_loader=data_loader.get_validation_loader(batch_size=1, num_workers=1)
-                else:
-                    # TODO save predictions from test set
-                    pass
-
-                with torch.no_grad():
-                    with tqdm(enumerate(valid_loader), total=len(valid_loader), position=0, leave=True) as iterator:
-                        for idx, batch in iterator:
-
-                            X, y_true, _, fid = batch
-                            logits = model(X.to(device))
-                            predicted_probabilities = softmax(logits).cpu().detach().numpy()[0]
-                            predicted_class = np.argmax(predicted_probabilities)
-    
-                            output_list.append({'fid': fid.cpu().detach().numpy(),
-                                'crop_id': label_ids[predicted_class],
-                                'crop_name': label_names[predicted_class],
-                                'crop_probs': predicted_probabilities})
-    
-                #  save predictions into output json:
-                if args.save_preds == 'valid':
-                    output_name = os.path.join(args.target_dir, '34S-20E-259N-2017-validation.json')
-                else:
-                    output_name = os.path.join(args.target_dir, '34S-20E-259N-2017-submission.json')
-                output_frame = pd.DataFrame.from_dict(output_list)
-                output_frame.to_json(output_name)
-                print(f'Validation / Submission was saved to location: {(output_name)}')
-
-            else:
-                print('INFO: no best model found ...')
-
-#def make_predictions(model, dataloader, loss_criterion, device, args):
-#    _, y_true, y_pred, *_ = tveu.validation_epoch(model, loss_criterion, dataloader, device=device)
-#    print(y_pred)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
