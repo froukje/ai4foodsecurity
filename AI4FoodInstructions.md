@@ -10,7 +10,7 @@ Creates train data and test data as hdf5 files:
 
 For the version of Planet data with five day cadence
 
-`python preprocess_planet.py --five-day --n-processes 16 --t-spatial-encoder`
+`python preprocess_planet.py --five-day --n-processes 16 --t-spatial-encoder --target-data-dir /work/ka1176/sha    red_data/2021-ai4food/dev_data/planet_5day/default/`
 
 ### Sentinel 1
 
