@@ -17,42 +17,12 @@ class EarthObservationDataset(Dataset):
 
     def __init__(self, args):
         self.args = args
+        self.h5_file = h5py.File(os.path.join(self.args.dev_data_dir, f'{args.split}_data.h5'), 'r')
 
-    def __len__(self):
-        return len(self.labels) 
-
-    def __getitem__(self, idx):
-        pass
-
-
-class Sentinel2Dataset(EarthObservationDataset):
-    '''
-    Sentinel 2 Dataset
-
-    args namespace should provide
-
-    data_dir : 
-    split    :
-    bands    : List of Sentinel 2 bands
-    ndvi     : If TRUE, include the NDVI in a band like fashion
-    '''
-    super().__init__()
-
-    def __init__(self, args): 
-        self.args = args
-
-        h5_file = h5py.File(os.path.join(self.args.dev_data_dir, f'{args.split}_data.h5'), 'r')
-
-        self.X = h5_file['image_stack'][:]
-        self.mask = h5_file['mask'][:].astype(bool)
-        self.feature = h5_file['feature'][:]
-        self.labels = h5_file['labels'][:]
-
-        # add NDVI
-        if args.ndvi:
-            ndvi = _calc_ndvi(self.X)
-            self.X = np.concatenate(self.X, ndvi, axis=1)
-
+        self.X = self.h5_file['image_stack'][:].astype(np.float32)
+        self.mask = self.h5_file['mask'][:].astype(bool)
+        self.feature = self.h5_file['feature'][:]
+        self.labels = self.h5_file['labels'][:]
 
     def __len__(self):
         return len(self.labels) 
@@ -65,6 +35,32 @@ class Sentinel2Dataset(EarthObservationDataset):
         X[~mask] = self.args.fill_value
 
         return X, label
+
+class Sentinel2Dataset(EarthObservationDataset):
+    '''
+    Sentinel 2 Dataset
+
+    args namespace should provide
+
+    bands    : List of Sentinel 2 bands
+    ndvi     : If TRUE, include the NDVI in a band like fashion
+    '''
+    super().__init__()
+
+    def __init__(self, args): 
+        # TODO select bands
+
+        # add NDVI
+        if args.ndvi:
+            ndvi = Sentinel2Dataset._calc_ndvi(self.X)
+            self.X = np.concatenate([self.X, ndvi], axis=1)
+
+    def __len__(self):
+        return super().__len__(self)
+
+    def __getitem__(self, idx):
+        return super().__getitem__(self, idx)
+        
 
     @staticmethod
     def _calc_ndvi(X):
@@ -100,15 +96,33 @@ class Sentinel1Dataset(EarthObservationDataset):
 class PlanetDataset(EarthObservationDataset):
     '''
     Planet Dataset
+
+    args namespace:
+    ndvi : if TRUE, include the NDVI in a band like fashion
     '''
     super().__init__()
 
-    def __init__(self, ...):
-        pass
+    def __init__(self, args): 
+        if args.ndvi:
+            ndvi = PlanetDataset._calc_ndvi(self.X)
+            self.X = np.concatenate([self.X, ndvi], axis=1)
 
     def __len__(self):
-        return len(self.labels) 
+        return super().__len__(self)
 
     def __getitem__(self, idx):
-        pass
+        return super().__getitem__(self, idx)
 
+    @staticmethod
+    def _calc_ndvi(X):
+        '''
+        Calculate the normalized vegetation index
+
+        NDVI = (NIR - RED) / (NIR + RED)
+
+        '''
+
+        nir = X[:, 3]
+        red = X[:, 2]
+
+        return (nir - red) / (nir + red)
