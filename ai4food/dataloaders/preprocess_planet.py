@@ -31,11 +31,11 @@ def extend_dataset(reader, keys, raw_ds):
             start_time = time.time()
         for key in keys:
             if key == 'image_stack':
-               raw_ds[key].extend(sample[0].numpy())
+               raw_ds[key].extend(sample[0].numpy().astype(np.float32))
             elif key == 'label':
                raw_ds[key].append(sample[1])
             elif key == 'mask':
-               raw_ds[key].extend(sample[2].numpy())
+               raw_ds[key].extend(sample[2].numpy().astype(np.float32))
             elif key == 'fid':
                raw_ds[key].append(sample[3])
             else:
@@ -43,13 +43,13 @@ def extend_dataset(reader, keys, raw_ds):
 
     return raw_ds
 
-def save_dataset(raw_ds, keys, image_size, filename):
+def save_dataset(raw_ds, keys, time_size, image_size, filename):
     '''Save raw_ds to filename (hdf5)'''
 
     n_samples = len(raw_ds['label'])
     print(f'Total samples available in {filename}: {n_samples}')
 
-    image_dims = (244, 4, image_size, image_size,)
+    image_dims = (time_size, 4, image_size, image_size,)
     chunk_size = 100
     mask_dims  = (image_size, image_size,)
 
@@ -122,6 +122,11 @@ def main(args):
         list_is_train = [True, True, False]
         list_comment = ['First train set', 'Second train set', 'Test set']
 
+        if args.five_day:
+            time_size = 48
+        else:
+            time_size = 244
+
     elif args.region == 'germany':
         raise ValueError(f'Not implemented: region = {args.region}')
 
@@ -175,7 +180,7 @@ def main(args):
     for reader in train_readers:
         raw_ds = extend_dataset(reader, keys, raw_ds)
 
-    save_dataset(raw_ds, keys, args.t_image_size, 'train_data.h5')
+    save_dataset(raw_ds, keys, time_size, args.t_image_size, 'train_data.h5')
 
     # process all test data sets
     raw_ds = {key:[] for key in keys}
@@ -183,7 +188,7 @@ def main(args):
     for reader in test_readers:
         raw_ds = extend_dataset(reader, keys, raw_ds)
 
-    save_dataset(raw_ds, keys, args.t_image_size, 'test_data.h5')
+    save_dataset(raw_ds, keys, time_size, args.t_image_size, 'test_data.h5')
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
