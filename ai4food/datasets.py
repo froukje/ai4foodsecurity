@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 from torch.utils.data import Dataset
-
+import h5py
+import os
+import numpy as np
 
 class EarthObservationDataset(Dataset):
     '''
@@ -13,16 +15,18 @@ class EarthObservationDataset(Dataset):
     fill_value : fill value for masked pixels (e.g. 0 / None)
 
     '''
-    super().__init__()
+    #super().__init__()
 
     def __init__(self, args):
+        super().__init__()
         self.args = args
         self.h5_file = h5py.File(os.path.join(self.args.dev_data_dir, f'{args.split}_data.h5'), 'r')
 
         self.X = self.h5_file['image_stack'][:].astype(np.float32)
         self.mask = self.h5_file['mask'][:].astype(bool)
-        self.feature = self.h5_file['feature'][:]
-        self.labels = self.h5_file['labels'][:]
+        #self.feature = self.h5_file['feature'][:]
+        self.fid = self.h5_file['fid'][:]
+        self.labels = self.h5_file['label'][:]
 
     def __len__(self):
         return len(self.labels) 
@@ -31,10 +35,11 @@ class EarthObservationDataset(Dataset):
         X = self.X[idx]
         label = self.labels[idx]
         mask = self.mask[idx]
+        fid = self.fid[idx]
 
-        X[~mask] = self.args.fill_value
+        X[:,:,~mask] = self.args.fill_value
 
-        return X, label
+        return X, label, mask, fid
 
 class Sentinel2Dataset(EarthObservationDataset):
     '''
@@ -45,9 +50,10 @@ class Sentinel2Dataset(EarthObservationDataset):
     bands    : List of Sentinel 2 bands
     ndvi     : If TRUE, include the NDVI in a band like fashion
     '''
-    super().__init__()
+    #super().__init__()
 
     def __init__(self, args): 
+        super().__init__()
         # TODO select bands
 
         # add NDVI
@@ -76,20 +82,20 @@ class Sentinel2Dataset(EarthObservationDataset):
 
         return (nir - red) / (nir + red)
 
-class Sentinel1Dataset(EarthObservationDataset):
-    '''
-    Sentinel 1 Dataset
-    '''
-    super().__init__()
+#class Sentinel1Dataset(EarthObservationDataset):
+#    '''
+#    Sentinel 1 Dataset
+#    '''
+#    super().__init__()
 
-    def __init__(self, ...):
-        pass
+#    def __init__(self, ...):
+#        pass
 
-    def __len__(self):
-        return len(self.labels) 
+#    def __len__(self):
+#        return len(self.labels) 
 
-    def __getitem__(self, idx):
-        pass
+#    def __getitem__(self, idx):
+#        pass
 
 
 
@@ -100,18 +106,20 @@ class PlanetDataset(EarthObservationDataset):
     args namespace:
     ndvi : if TRUE, include the NDVI in a band like fashion
     '''
-    super().__init__()
+    #super().__init__()
 
     def __init__(self, args): 
+        super().__init__(args)
         if args.ndvi:
             ndvi = PlanetDataset._calc_ndvi(self.X)
             self.X = np.concatenate([self.X, ndvi], axis=1)
 
-    def __len__(self):
-        return super().__len__(self)
+    #def __len__(self):
+        #return super().__len__(self)
+    #    return len(self.X)
 
-    def __getitem__(self, idx):
-        return super().__getitem__(self, idx)
+    #def __getitem__(self, idx):
+    #    return super().__getitem__(self, idx)
 
     @staticmethod
     def _calc_ndvi(X):

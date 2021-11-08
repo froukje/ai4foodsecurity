@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import pandas as pd
 import sklearn.metrics
 import torch
 from tqdm import tqdm
@@ -72,9 +73,9 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
             print(f'Validation was saved to location: {(output_name)}')
         else:
             output_name = os.path.join(args.target_dir, '34S-20E-259N-2017-submission.json')
-            output_frame = pd.DataFrame.from_dict(output_list)
-            output_frame.to_json(output_name)
             print(f'Submission was saved to location: {(output_name)}')
+        output_frame = pd.DataFrame.from_dict(output_list)
+        output_frame.to_json(output_name)
 
     else:
         print('INFO: no best model found ...')
