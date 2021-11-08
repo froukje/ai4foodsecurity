@@ -149,8 +149,8 @@ def main(args):
             print(f"\nINFO: Epoch {epoch}: train_loss {train_loss:.2f}, valid_loss {valid_loss:.2f} " + scores_msg) 
 
     # make predictions   
-    if args.save_preds=='valid' or args.save_preds=='test':
-        if args.save_preds == 'valid':
+    if args.save_preds:
+        if args.split == 'train':
             test_loader = DataLoader(valid_dataset, batch_size=1, num_workers=8)
         else:
             test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=8)
@@ -166,9 +166,8 @@ if __name__ == '__main__':
     parser.add_argument('--label-dir', type=str, default='ref_fusion_competition_south_africa_train_labels/ref_fusion_competition_south_africa_train_labels_34S_19E_258N/labels.geojson')
     parser.add_argument('--dev-data-dir', type=str, default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/planet_5day/default')
     parser.add_argument('--target-dir', type=str, default='.')
-    # parameter to save predictions from validation or tet set
     parser.add_argument('--split', type=str, default='train', choices=['train', 'test']) 
-    parser.add_argument('--save_preds', type=str, default='', choices=['valid', 'test']) 
+    parser.add_argument('--save_preds', action='store_true', default=False) 
     parser.add_argument('--max-epochs', type=int, default=10)
     parser.add_argument('--patience', type=int, default=5)
     parser.add_argument('--checkpoint-epoch', type=int, default=5)

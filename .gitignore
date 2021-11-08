@@ -9,5 +9,6 @@ ai4food/valid_losses.txt
 ai4food/34S-20E-259N-2017-validation.json
 ai4food/34S-20E-259N-2017-submission.json
 ai4food/__pycache__/
+ai4food/dataloaders/__pycache__/
 images/ai-4-food-security_latest.sif
 
