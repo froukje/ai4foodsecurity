@@ -45,11 +45,12 @@ def main(args):
                                                 lengths=lengths, 
                                                 generator=torch.Generator().manual_seed(42))
 
-    # TODO read this from h5 file!    
+    # TODO read names from h5 file!    
     # Read label ids and names
+    label_ids = np.unique(test_dataset.labels)+1
     train_labels_dir = os.path.join(args.raw_data_dir, args.label_dir)
     train_labels = gpd.read_file(train_labels_dir)
-    label_ids = train_labels['crop_id'].unique()
+    #label_ids = train_labels['crop_id'].unique()
     label_names = train_labels['crop_name'].unique()
 
     # sort label ids and names
