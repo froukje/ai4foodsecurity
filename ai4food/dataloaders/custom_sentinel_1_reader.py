@@ -96,7 +96,7 @@ class S1Reader(Dataset):
         else:
             label = feature.crop_id
 
-        return image_stack, label, mask, feature.fid
+        return image_stack, label, mask, feature.fid, feature.crop_name
 
 
     @staticmethod
