@@ -183,6 +183,7 @@ class Preprocessor(object):
                                                                'labels.geojson')
 
             self.train_labels = [label_dir_1]
+            self.test_labels  = [label_dir_T]
 
         # train source is different by source and region
         if self.args.region == 'south-africa':
