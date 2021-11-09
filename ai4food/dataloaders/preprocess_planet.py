@@ -38,6 +38,8 @@ def extend_dataset(reader, keys, raw_ds):
                raw_ds[key].extend(sample[2].numpy().astype(np.float32))
             elif key == 'fid':
                raw_ds[key].append(sample[3])
+            elif key == 'crop_name':
+               raw_ds[key].append(sample[4])
             else:
                raise ValueError(f'Invalid key: {key}')
 
@@ -69,7 +71,6 @@ def save_dataset(raw_ds, keys, time_size, image_size, filename):
             h5_file.create_dataset(key,
                                    shape=(n_samples,), 
                                    chunks=(chunk_size,), 
-                                   fletcher32=True,
                                    dtype='int')
             vals = np.array(raw_ds[key])
         elif key == 'mask':
@@ -84,8 +85,13 @@ def save_dataset(raw_ds, keys, time_size, image_size, filename):
             h5_file.create_dataset(key,
                                    shape=(n_samples,), 
                                    chunks=(chunk_size,), 
-                                   fletcher32=True,
                                    dtype='int')
+            vals = np.array(raw_ds[key])
+        elif key == 'crop_name':
+            h5_file.create_dataset(key,
+                                   shape=(n_samples,), 
+                                   chunks=(chunk_size,), 
+                                   dtype=h5py.string_dtype())
             vals = np.array(raw_ds[key])
         h5_file[key][:] = vals
         h5_file.flush()
@@ -121,6 +127,7 @@ def main(args):
         list_targets = [os.path.join(args.target_data_dir, tt) for tt in ['train_1', 'train_2', 'test']]
         list_is_train = [True, True, False]
         list_comment = ['First train set', 'Second train set', 'Test set']
+        list_ignore = [args.min_area_to_ignore, args.min_area_to_ignore, 0] # not in test set
 
         if args.five_day:
             time_size = 48
@@ -146,7 +153,7 @@ def main(args):
     train_readers = []
     test_readers = []
 
-    for source, label, target, comment, is_train in zip(list_source, list_labels, list_targets, list_comment, list_is_train):
+    for source, label, target, comment, is_train, minA in zip(list_source, list_labels, list_targets, list_comment, list_is_train, list_ignore):
 
         print(comment)
         print(f'Reading from {source}')
@@ -161,8 +168,8 @@ def main(args):
                                     output_dir=target,
                                     label_ids=label_ids,
                                     transform=transform.transform,
-                                    min_area_to_ignore=args.min_area_to_ignore,
-                                    overwrite=True,
+                                    min_area_to_ignore=minA,
+                                    overwrite=~args.no_overwrite, # not no overwrite --> overwrite
                                     n_processes=args.n_processes)
 
         if is_train:
@@ -172,7 +179,7 @@ def main(args):
 
 
     # process the patches to hdf5
-    keys = ['image_stack', 'label', 'mask', 'fid']
+    keys = ['image_stack', 'label', 'mask', 'fid', 'crop_name']
 
     # process all training data sets (validation will be split later)
     raw_ds = {key:[] for key in keys}
@@ -201,6 +208,7 @@ if __name__=='__main__':
     parser.add_argument('--n-processes', type=int, default=1)
     parser.add_argument('--min-area-to-ignore', type=float, default=1000, help='Fields below minimum area are ignored')
     parser.add_argument('--five-day', action='store_true', help='use the planet fusion data averaged over 5 days') 
+    parser.add_argument('--no-overwrite', action='store_false', help='DO NOT overwrite npz data (default OVERWRITE)')
     # transformer arguments
     parser.add_argument('--t-spatial-encoder', action='store_true', help='Transformer variable')
     parser.add_argument('--t-normalize', action='store_true', help='Transformer variable')

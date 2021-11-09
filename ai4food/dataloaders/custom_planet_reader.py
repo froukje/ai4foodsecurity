@@ -68,7 +68,7 @@ class PlanetReader(Dataset):
     def __getitem__(self, item):
         """
         THIS FUNCTION ITERATE OVER THE DATASET BY GIVEN ITEM NO AND RETURNS FOLLOWINGS:
-        :return: image_stack in size of [Time Stamp, Image Dimension (Channel), Height, Width] , crop_label, field_mask in size of [Height, Width], field_id
+        :return: image_stack in size of [Time Stamp, Image Dimension (Channel), Height, Width] , crop_label, field_mask in size of [Height, Width], field_id, crop_name
         """
 
         feature = self.labels.iloc[item]
@@ -97,7 +97,7 @@ class PlanetReader(Dataset):
         else:
             label = feature.crop_id
 
-        return image_stack, label, mask, feature.fid
+        return image_stack, label, mask, feature.fid, feature.crop_name
 
 
     @staticmethod
