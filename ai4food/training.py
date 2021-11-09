@@ -9,12 +9,12 @@ import argparse
 import os
 import sys
 import h5py
-from evaluation_utils import metrics, save_predictions
+from evaluation_utils import metrics, train_epoch, validation_epoch, save_predictions
 
 sys.path.append('../notebooks/starter_files/')
 from utils.data_transform import PlanetTransform
 from utils.baseline_models import SpatiotemporalModel
-from utils import train_valid_eval_utils as tveu
+#from utils import train_valid_eval_utils as tveu
 
 import torch
 from torch import nn
@@ -47,10 +47,10 @@ def main(args):
 
     # TODO read names from h5 file!    
     # Read label ids and names
-    label_ids = np.unique(test_dataset.labels)+1
+    #label_ids = np.unique(test_dataset.labels)+1
     train_labels_dir = os.path.join(args.raw_data_dir, args.label_dir)
     train_labels = gpd.read_file(train_labels_dir)
-    #label_ids = train_labels['crop_id'].unique()
+    label_ids = train_labels['crop_id'].unique()
     label_names = train_labels['crop_name'].unique()
 
     # sort label ids and names
@@ -66,7 +66,7 @@ def main(args):
     # Initialize data loaders
     if args.split == 'train':
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=8, shuffle=True, drop_last=True)
-        valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=8)
+        valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=8,drop_last=True)
     else:
         test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=8)
 
@@ -83,7 +83,7 @@ def main(args):
 
     # Initialize model optimizer and loss criterion:
     optimizer = Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
-    loss_criterion = CrossEntropyLoss(reduction="mean")
+    criterion = CrossEntropyLoss(reduction="mean")
 
     # training
     best_loss = np.inf
@@ -99,8 +99,8 @@ def main(args):
             model.train()
             start_time = time.time()
             print(f'\nEpoch: {epoch}')
-    
-            train_loss = tveu.train_epoch(model, optimizer, loss_criterion, train_loader, device=device)
+            classes = len(label_ids)
+            train_loss = train_epoch(model, optimizer, train_loader, classes, args, device=device)
             train_loss = train_loss.cpu().detach().numpy()[0]
             all_train_losses.append(train_loss)
 
@@ -108,7 +108,7 @@ def main(args):
             start_time = time.time()
 
             # validation
-            valid_loss, y_true, y_pred, *_ = tveu.validation_epoch(model, loss_criterion, valid_loader, device=device)
+            valid_loss, y_true, y_pred, *_ = validation_epoch(model, valid_loader, classes, args, device=device)
             valid_loss = valid_loss.cpu().detach().numpy()[0]
             all_valid_losses.append(valid_loss)
 
@@ -168,7 +168,7 @@ if __name__ == '__main__':
     parser.add_argument('--dev-data-dir', type=str, default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/planet_5day/default')
     parser.add_argument('--target-dir', type=str, default='.')
     parser.add_argument('--split', type=str, default='train', choices=['train', 'test']) 
-    parser.add_argument('--save_preds', action='store_true', default=False) 
+    parser.add_argument('--save-preds', action='store_true', default=False) 
     parser.add_argument('--max-epochs', type=int, default=10)
     parser.add_argument('--patience', type=int, default=5)
     parser.add_argument('--checkpoint-epoch', type=int, default=5)

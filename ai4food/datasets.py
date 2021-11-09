@@ -15,7 +15,6 @@ class EarthObservationDataset(Dataset):
     fill_value : fill value for masked pixels (e.g. 0 / None)
 
     '''
-    #super().__init__()
 
     def __init__(self, args):
         super().__init__()
@@ -24,7 +23,6 @@ class EarthObservationDataset(Dataset):
 
         self.X = self.h5_file['image_stack'][:].astype(np.float32)
         self.mask = self.h5_file['mask'][:].astype(bool)
-        #self.feature = self.h5_file['feature'][:]
         self.fid = self.h5_file['fid'][:]
         self.labels = self.h5_file['label'][:]
 
@@ -50,7 +48,6 @@ class Sentinel2Dataset(EarthObservationDataset):
     bands    : List of Sentinel 2 bands
     ndvi     : If TRUE, include the NDVI in a band like fashion
     '''
-    #super().__init__()
 
     def __init__(self, args): 
         super().__init__()
@@ -106,7 +103,6 @@ class PlanetDataset(EarthObservationDataset):
     args namespace:
     ndvi : if TRUE, include the NDVI in a band like fashion
     '''
-    #super().__init__()
 
     def __init__(self, args): 
         super().__init__(args)
@@ -114,12 +110,6 @@ class PlanetDataset(EarthObservationDataset):
             ndvi = PlanetDataset._calc_ndvi(self.X)
             self.X = np.concatenate([self.X, ndvi], axis=1)
 
-    #def __len__(self):
-        #return super().__len__(self)
-    #    return len(self.X)
-
-    #def __getitem__(self, idx):
-    #    return super().__getitem__(self, idx)
 
     @staticmethod
     def _calc_ndvi(X):
