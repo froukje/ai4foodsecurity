@@ -161,11 +161,11 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
                                 'crop_probs': predicted_probabilities})
 
         #  save predictions into output json:
-        if args.save_preds == 'valid':
-            output_name = os.path.join(args.target_dir, '34S-20E-259N-2017-validation.json')
+        if args.split == 'valid':
+            output_name = os.path.join(args.target_dir, 'validation.json')
             print(f'Validation was saved to location: {(output_name)}')
         else:
-            output_name = os.path.join(args.target_dir, '34S-20E-259N-2017-submission.json')
+            output_name = os.path.join(args.target_dir, 'submission.json')
             print(f'Submission was saved to location: {(output_name)}')
         output_frame = pd.DataFrame.from_dict(output_list)
         output_frame.to_json(output_name)
