@@ -35,6 +35,9 @@ def main(args):
    
     # construct the dataset
     test_dataset = PlanetDataset(args)
+    print(len(test_dataset))
+    print(len(test_dataset.labels))
+    print(len(test_dataset.fid))
     # if training, split dataset in train and valid
     if args.split=='train':
         # lengths of train and valid datasets
@@ -47,18 +50,26 @@ def main(args):
 
     # TODO read names from h5 file!    
     # Read label ids and names
+    
     #label_ids = np.unique(test_dataset.labels)+1
-    train_labels_dir = os.path.join(args.raw_data_dir, args.label_dir)
-    train_labels = gpd.read_file(train_labels_dir)
-    label_ids = train_labels['crop_id'].unique()
-    label_names = train_labels['crop_name'].unique()
+    #if args.split=='train':
+    #    labels_dir = os.path.join(args.raw_data_dir, args.train_label_dir)
+    #else:
+    #    labels_dir = os.path.join(args.raw_data_dir, args.test_label_dir)
+
+    #labels = gpd.read_file(labels_dir)
+    #label_ids = labels['crop_id'].unique()
+    #label_names = labels['crop_name'].unique()
 
     # sort label ids and names
-    zipped_lists = zip(label_ids, label_names)
-    sorted_pairs = sorted(zipped_lists)
+    #zipped_lists = zip(label_ids, label_names)
+    #sorted_pairs = sorted(zipped_lists)
 
-    tuples = zip(*sorted_pairs)
-    label_ids, label_names = [list(tuple) for tuple in tuples]
+    #tuples = zip(*sorted_pairs)
+    #label_ids, label_names = [list(tuple) for tuple in tuples]
+
+    label_ids = [1, 2, 3, 4, 5]
+    label_names = ['Wheat', 'Barley', 'Canola', 'Lucerne/Medics', 'Small grain grazing']
 
     print(f'label_ids: {label_ids}')
     print(f'label_names: {label_names}\n')
@@ -154,7 +165,7 @@ def main(args):
         if args.split == 'train':
             test_loader = DataLoader(valid_dataset, batch_size=1, num_workers=8)
         else:
-            test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=8)
+            test_loader = DataLoader(test_dataset, batch_size=1, num_workers=8)
             save_model_path = os.path.join(args.target_dir, 'best_model.pt')
         
         print(f'\nINFO: saving predictions from the {args.save_preds} set')
@@ -163,8 +174,9 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--raw-data-dir', type=str, default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/raw_data/')
-    parser.add_argument('--label-dir', type=str, default='ref_fusion_competition_south_africa_train_labels/ref_fusion_competition_south_africa_train_labels_34S_19E_258N/labels.geojson')
+    #parser.add_argument('--train-label-dir', type=str, default='ref_fusion_competition_south_africa_train_labels/ref_fusion_competition_south_africa_train_labels_34S_19E_258N/labels.geojson')
+    #parser.add_argument('--test-label-dir', type=str, default='ref_fusion_competition_south_africa_test_labels/ref_fusion_competition_south_africa_test_labels_34S_20E_259N/labels.geojson')
+    #parser.add_argument('--raw-data-dir', type=str, default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/raw_data/')
     parser.add_argument('--dev-data-dir', type=str, default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/planet_5day/default')
     parser.add_argument('--target-dir', type=str, default='.')
     parser.add_argument('--split', type=str, default='train', choices=['train', 'test']) 
@@ -175,7 +187,6 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', type=int, default=8)
     parser.add_argument('--input-dim', type=int, default=4)
     parser.add_argument('--sequence-length', type=int, default=74)
-    parser.add_argument('--min-area-to-ignore', type=int, default=1000)
     parser.add_argument('--ndvi', action='store_true', default=False)
     parser.add_argument('--fill-value', type=bool, default=0)
     args = parser.parse_args()
