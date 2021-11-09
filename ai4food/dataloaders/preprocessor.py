@@ -236,28 +236,28 @@ class Preprocessor(object):
                 train_dir = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_train_source_planet')
                 test_dir  = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_test_source_planet')
 
-                self.time_size = 244 # time steps available
+                self.time_size = 365 # time steps available
                 self.band_size = 4 # bands available
 
             elif self.args.data_source == 'planet-5':
                 train_dir = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_train_source_planet_5day')
                 test_dir  = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_test_source_planet_5day')
 
-                self.time_size = 48 # time steps available
+                self.time_size = 73 # time steps available
                 self.band_size = 4 # bands available
 
             elif self.args.data_source == 'sentinel-1':
-                train_dir = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_train_source_sentinel_1')
-                test_dir  = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_test_source_sentinel_1')
+                train_dir = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_train_source_sentinel_1', 'dlr_fusion_competition_germany_train_source_sentinel_1_asc_33N_18E_242N_2018')
+                test_dir  = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_test_source_sentinel_1', 'dlr_fusion_competition_germany_test_source_sentinel_1_asc_33N_17E_243N_2019')
 
-                self.time_size = 41 # time steps available
+                self.time_size = 122 # time steps available
                 self.band_size = 2 # bands available
 
             elif self.args.data_source == 'sentinel-2':
-                train_dir = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_train_source_sentinel_2')
-                test_dir  = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_test_source_sentinel_2')
+                train_dir = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_train_source_sentinel_2', 'dlr_fusion_competition_germany_train_source_sentinel_2_33N_18E_242N_2018')
+                test_dir  = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_test_source_sentinel_2', 'dlr_fusion_competition_germany_test_source_sentinel_2_33N_17E_243N_2019')
 
-                self.time_size = 76 # time steps available
+                self.time_size = 144 # time steps available
                 self.band_size = 12 # bands available
 
             # this is the same for all germany sources
