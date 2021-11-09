@@ -101,7 +101,7 @@ class S2Reader(Dataset):
         else:
             label = feature.crop_id
 
-        return image_stack, label, mask, feature.fid
+        return image_stack, label, mask, feature.fid, feature.crop_name
 
     @staticmethod
     def _setup(rootpath, labelgeojson, npyfolder, min_area_to_ignore=1000,include_cloud=False, overwrite=False, n_processes=1):
