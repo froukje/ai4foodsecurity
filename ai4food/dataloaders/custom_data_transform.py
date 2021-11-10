@@ -41,23 +41,22 @@ class EOTransformer():
             if image_stack.shape[2] >= self.image_size and image_stack.shape[3] >= self.image_size:
                 image_stack, mask = random_crop(image_stack, mask, self.image_size)
 
-
             image_stack, mask = crop_or_pad_to_size(image_stack, mask, self.image_size)
 
             # rotations
             rot = np.random.choice([0, 1, 2, 3])
-            image_stack = np.rot90(image_stack, rot, [2, 3])
+            image_stack = np.rot90(image_stack, rot, [2, 3]) # rotate in plane defined by [2,3]
             mask = np.rot90(mask, rot)
 
             # flip up down
-            if np.random.rand() < 0.5:
-                image_stack = np.flipud(image_stack)
-                mask = np.flipud(mask)
+            #if np.random.rand() < 0.5:
+            #    image_stack = np.flipud(image_stack)
+            #    mask = np.flipud(mask)
 
-            # flip left right
-            if np.random.rand() < 0.5:
-                image_stack = np.fliplr(image_stack)
-                mask = np.fliplr(mask)
+            ## flip left right
+            #if np.random.rand() < 0.5:
+            #    image_stack = np.fliplr(image_stack)
+            #    mask = np.fliplr(mask)
 
         image_stack = image_stack * 1e-4
 
@@ -66,7 +65,7 @@ class EOTransformer():
             image_stack -= 0.1014 + np.random.normal(scale=0.01)
             image_stack /= 0.1171 + np.random.normal(scale=0.01)
 
-        return torch.from_numpy(np.ascontiguousarray(image_stack)).float(), torch.from_numpy(np.ascontiguousarray(mask))
+        return image_stack, mask
 
 class PlanetTransform(EOTransformer):
     """

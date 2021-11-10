@@ -350,11 +350,11 @@ class Preprocessor(object):
                 start_time = time.time()
             for key in keys:
                 if key == 'image_stack':
-                   raw_ds[key].extend(sample[0].numpy().astype(np.float32))
+                   raw_ds[key].extend(sample[0].astype(np.float32))
                 elif key == 'label':
                    raw_ds[key].append(sample[1])
                 elif key == 'mask':
-                   raw_ds[key].extend(sample[2].numpy().astype(np.float32))
+                   raw_ds[key].extend(sample[2].astype(np.float32))
                 elif key == 'fid':
                    raw_ds[key].append(sample[3])
                 elif key == 'crop_name':
