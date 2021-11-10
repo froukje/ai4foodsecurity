@@ -35,9 +35,6 @@ def main(args):
    
     # construct the dataset
     test_dataset = PlanetDataset(args)
-    print(len(test_dataset))
-    print(len(test_dataset.labels))
-    print(len(test_dataset.fid))
     # if training, split dataset in train and valid
     if args.split=='train':
         # lengths of train and valid datasets
@@ -58,6 +55,7 @@ def main(args):
     #    labels_dir = os.path.join(args.raw_data_dir, args.test_label_dir)
 
     #labels = gpd.read_file(labels_dir)
+    #print('dataframe length', len(labels))
     #label_ids = labels['crop_id'].unique()
     #label_names = labels['crop_name'].unique()
 
@@ -177,7 +175,7 @@ if __name__ == '__main__':
     #parser.add_argument('--train-label-dir', type=str, default='ref_fusion_competition_south_africa_train_labels/ref_fusion_competition_south_africa_train_labels_34S_19E_258N/labels.geojson')
     #parser.add_argument('--test-label-dir', type=str, default='ref_fusion_competition_south_africa_test_labels/ref_fusion_competition_south_africa_test_labels_34S_20E_259N/labels.geojson')
     #parser.add_argument('--raw-data-dir', type=str, default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/raw_data/')
-    parser.add_argument('--dev-data-dir', type=str, default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/planet_5day/default')
+    parser.add_argument('--dev-data-dir', type=str, default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/south-africa/planet_5day/default')
     parser.add_argument('--target-dir', type=str, default='.')
     parser.add_argument('--split', type=str, default='train', choices=['train', 'test']) 
     parser.add_argument('--save-preds', action='store_true', default=False) 
