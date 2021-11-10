@@ -342,6 +342,9 @@ class Preprocessor(object):
         start_time = time.time()
 
         for i,sample in enumerate(reader):
+            if sample is None:
+                print('skipping sample in extend_dataset', i)
+                continue
             if i%100 == 0:
                 print(f'Processed 100 samples in {time.time() - start_time:.0f} seconds')
                 start_time = time.time()

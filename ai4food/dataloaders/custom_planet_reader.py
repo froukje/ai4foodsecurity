@@ -81,10 +81,10 @@ class PlanetReader(Dataset):
                 mask = object["mask"]
             except zipfile.BadZipFile:
                 print("ERROR: {} is a bad zipfile...".format(npyfile))
-                raise
+                return None
         else:
             print("ERROR: {} is a missing...".format(npyfile))
-            raise
+            return None
 
         if self.data_transform is not None:
             image_stack, mask = self.data_transform(image_stack, mask)
