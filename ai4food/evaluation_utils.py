@@ -151,14 +151,14 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
         with torch.no_grad():
             with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
                 for idx, batch in iterator:
-                    X, y_true, _, fid = batch
+                    X, _, _, fid = batch
                     logits = model(X.to(device))
                     predicted_probabilities = softmax(logits).cpu().detach().numpy()[0]
                     predicted_class = np.argmax(predicted_probabilities)
-                    output_list.append({'fid': fid.cpu().detach().numpy(),
+                    output_list.append({'fid': fid.cpu().detach().numpy()[0],
                                 'crop_id': label_ids[predicted_class],
                                 'crop_name': label_names[predicted_class],
-                                'crop_probs': predicted_probabilities})
+                                'crop_probs': np.array(predicted_probabilities)})
 
         #  save predictions into output json:
         if args.split == 'train':
@@ -168,6 +168,7 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
             output_name = os.path.join(args.target_dir, 'submission.json')
             print(f'Submission was saved to location: {(output_name)}')
         output_frame = pd.DataFrame.from_dict(output_list)
+        print(output_frame.head())
         output_frame.to_json(output_name)
 
     else:
