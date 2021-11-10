@@ -110,7 +110,7 @@ class Preprocessor(object):
         for reader in self.train_readers:
             raw_ds = Preprocessor.extend_dataset(reader, self.keys, raw_ds)
 
-        Preprocessor.create_hdf5(raw_ds, self.keys, self.time_size, self.band_size, self.args.t_image_size, os.path.join(self.target_dir, 'train_data.h5'))
+        Preprocessor.create_hdf5(raw_ds, self.keys, self.time_size_train, self.band_size, self.args.t_image_size, os.path.join(self.target_dir, 'train_data.h5'))
 
         # test 
         raw_ds = {key:[] for key in self.keys}
@@ -118,7 +118,7 @@ class Preprocessor(object):
         for reader in self.test_readers:
             raw_ds = Preprocessor.extend_dataset(reader, self.keys, raw_ds)
 
-        Preprocessor.create_hdf5(raw_ds, self.keys, self.time_size, self.band_size, self.args.t_image_size, os.path.join(self.target_dir, 'test_data.h5'))
+        Preprocessor.create_hdf5(raw_ds, self.keys, self.time_size_test, self.band_size, self.args.t_image_size, os.path.join(self.target_dir, 'test_data.h5'))
 
     def _setup_transform(self):
         '''
@@ -156,7 +156,8 @@ class Preprocessor(object):
         test_sources  : list of dirs for testing
         train_targets : list of dirs for processed training data
         test_targets  : list of dirs for processed test data
-        time_size     : time dimension of output
+        time_size_train     : time dimension of output (train set)
+        time_size_test      : time dimension of output (test set)
         band_size     : band dimension of output
 
         '''
@@ -193,7 +194,7 @@ class Preprocessor(object):
                 train_dir_1 = os.path.join(train_dir, 'ref_fusion_competition_south_africa_train_source_planet_34S_19E_258N')
                 train_dir_2 = os.path.join(train_dir, 'ref_fusion_competition_south_africa_train_source_planet_34S_19E_259N')
 
-                self.time_size = 244 # time steps available
+                self.time_size_train = 244 # time steps available
                 self.band_size = 4 # bands available
 
             elif self.args.data_source == 'planet-5':
@@ -202,7 +203,7 @@ class Preprocessor(object):
                 train_dir_1 = os.path.join(train_dir, 'ref_fusion_competition_south_africa_train_source_planet_5day_34S_19E_258N')
                 train_dir_2 = os.path.join(train_dir, 'ref_fusion_competition_south_africa_train_source_planet_5day_34S_19E_259N')
 
-                self.time_size = 48 # time steps available
+                self.time_size_train = 48 # time steps available
                 self.band_size = 4 # bands available
 
             elif self.args.data_source == 'sentinel-1':
@@ -212,7 +213,7 @@ class Preprocessor(object):
                 test_dir = os.path.join(args.raw_data_dir, 'ref_fusion_competition_south_africa_test_source_sentinel_1', \
                                         'ref_fusion_competition_south_africa_test_source_sentinel_1_asc_34S_20E_259N_2017')
 
-                self.time_size = 41 # time steps available
+                self.time_size_train = 41 # time steps available
                 self.band_size = 2 # bands available
 
             elif self.args.data_source == 'sentinel-2':
@@ -222,7 +223,7 @@ class Preprocessor(object):
                 test_dir = os.path.join(args.raw_data_dir, 'ref_fusion_competition_south_africa_test_source_sentinel_2', \
                                         'ref_fusion_competition_south_africa_test_source_sentinel_2_34S_20E_259N_2017')
 
-                self.time_size = 76 # time steps available
+                self.time_size_train = 76 # time steps available
                 self.band_size = 12 # bands available
 
             # this is the same for all south-africa sources
@@ -230,34 +231,39 @@ class Preprocessor(object):
             self.test_sources  = [test_dir]
             self.train_targets = [os.path.join(self.target_dir, 'train_1'), os.path.join(self.target_dir, 'train_2')]
             self.test_targets  = [os.path.join(self.target_dir, 'test')]
+            self.time_size_test = self.time_size_train # in season prediction: same time steps
 
         elif self.args.region == 'germany':
             if self.args.data_source == 'planet':
                 train_dir = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_train_source_planet')
                 test_dir  = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_test_source_planet')
 
-                self.time_size = 365 # time steps available
+                self.time_size_train = 365 # time steps available
+                self.time_size_test  = 365
                 self.band_size = 4 # bands available
 
             elif self.args.data_source == 'planet-5':
                 train_dir = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_train_source_planet_5day')
                 test_dir  = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_test_source_planet_5day')
 
-                self.time_size = 73 # time steps available
+                self.time_size_train = 73 # time steps available
+                self.time_size_test  = 73
                 self.band_size = 4 # bands available
 
             elif self.args.data_source == 'sentinel-1':
                 train_dir = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_train_source_sentinel_1', 'dlr_fusion_competition_germany_train_source_sentinel_1_asc_33N_18E_242N_2018')
                 test_dir  = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_test_source_sentinel_1', 'dlr_fusion_competition_germany_test_source_sentinel_1_asc_33N_17E_243N_2019')
 
-                self.time_size = 122 # time steps available
+                self.time_size_train = 122 # time steps available
+                self.time_size_test  = 120
                 self.band_size = 2 # bands available
 
             elif self.args.data_source == 'sentinel-2':
                 train_dir = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_train_source_sentinel_2', 'dlr_fusion_competition_germany_train_source_sentinel_2_33N_18E_242N_2018')
                 test_dir  = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_test_source_sentinel_2', 'dlr_fusion_competition_germany_test_source_sentinel_2_33N_17E_243N_2019')
 
-                self.time_size = 144 # time steps available
+                self.time_size_train = 144 # time steps available
+                self.time_size_test  = 144
                 self.band_size = 12 # bands available
 
             # this is the same for all germany sources
