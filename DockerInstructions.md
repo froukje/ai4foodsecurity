@@ -62,11 +62,12 @@ Create an allocation for an interactive job on any of the amd nodes
 # activate singularity module
 module load singularity
 # start the container
-singularity shell --nv --bind /scratch/{k,b}/$USER/singularity/cache:/home/jovyan/.cache --bind /mnt/lustre02/work/:/work /work/ka1176/shared_data/singularity/images/ai-4-food-security_latest.sif
+singularity shell --nv --bind /scratch/k/$USER/singularity/cache:/miniconda3/envs/ai4foodsecurity/nni --bind /scratch/{k,b}/$USER/singularity/cache:/home/jovyan/.cache --bind /mnt/lustre02/work/:/work /work/ka1176/shared_data/singularity/images/ai-4-food-security_latest.sif
 
 # --nv for activating the NVIDIA GPUs
 # --bind /scratch/k/$USER/singularity/cache:/home/jovyan/.cache: I had problems with some folders that are protected in the singularity container, and where my programs wanted to write to, mostly caches. I used --bind to direct them to my scratch directory.
-# --bind /mnt/lustre02/work/ka1176/:/swork: Makes our project directory on /work/ka1176 available within the singularity container as /swork
+# --bind /scratch/k/$USER/singularity/cache:/miniconda3/envs/ai4foodsecurity/nni: for nnictl output
+# --bind /mnt/lustre02/work/ka1176/:/work: Makes our project directory on /work/ka1176 available within the singularity container as /work
 ```
 
 Note that this does not make the home directory visible within the container. The `trial.dkrz.de` home directory is not the same as the `
