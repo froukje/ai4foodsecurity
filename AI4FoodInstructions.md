@@ -2,27 +2,44 @@
 
 Commands for running preprocessing in interactive jobs - adapt arguments as needed. Corresponding job submission scripts in `/work/ka1176/caroline/jobs/ai4food/prepare_data`.
 
-### Planet
+Calling the main preprocessing module with the most important parameters:
 
-Creates train data and test data as hdf5 files:
+```
+python preprocess_planet.py --n-processes <Number of processors for parallel preprocessing (default: 64)>
+                            --region [germany, south-africa]
+                            --data-source [planet, planet-5, sentinel-1, sentinel-2]
+                            --min-area-to-ignore <minimum crop field size (default: 1000)>
+                            --t-spatial-encoder <Apply image transform>
+                            --t-image-size <If image transform: image size (default: 32)>
+                            --t-random-extraction <Apply random extraction (default: 0)>
+                            --t-normalize <Apply z-score transform (default: False)>
+```
 
-`python preprocess_planet.py --n-processes 16 --t-spatial-encoder`
+First, the raw data is divided into crop fields and is saved as `fid_{fieldID}.npz` files. In the next step, the transform is applied. There are currently 3 transforms, based on the DENETHOR paper.
 
-For the version of Planet data with five day cadence
+```
+Image transform with N x N pixel cropped image:     --t-spatial-encoder --t-image-size N
+Random extraction transform with M selected pixels: --t-random-extraction M
+Spatial average transform: specify none of the arguments that start with --t                         
+```
 
-`python preprocess_planet.py --five-day --n-processes 16 --t-spatial-encoder --target-data-dir /work/ka1176/shared_data/2021-ai4food/dev_data/planet_5day/default/`
+Example for creating data from the South-Africa region, using Sentinel-2 data, and creating random cropped images:
 
-### Sentinel 1
+```
+python preprocessor.py --region south-africa --data-source sentinel-2 --n-processes 64 --t-spatial-encoder --target-sub-dir default --overwrite
+```
 
-Creates train data and test data as hdf5 files:
+Example for creating data from the Germany region, using Planet data, and creating spatially averaged data:
 
-`python preprocess_sentinel_1.py --n-processes 16 --t-spatial-encoder`
+```
+python preprocessor.py --region germany -data-source planet --n-processes 64 --target-sub-dir averaged --overwrite
+```
 
-### Sentinel 2
+Example for creating data from the Germany region, using Planet-5 data, and creating randomly extracted data:
 
-Creates train data and test data:
-
-`python preprocess_sentinel_2.py --n-processes 16 --t-spatial-encoder`
+```
+python preprocessor.py --region germany -data-source planet-5 --n-processes 64 --t-random-extraction 64 --target-sub-dir extracted --overwrite
+```
 
 ## Training
 
