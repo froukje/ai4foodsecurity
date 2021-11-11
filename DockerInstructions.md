@@ -124,9 +124,9 @@ echo "cd \$gitdir/scripts" >> singularity_run.sh
 echo "python prepare_planet_data.py --n-processes 128 --five-day True --train-set 2" >> singularity_run.sh
 
 # execute the singularity container
-singularity exec --bind /mnt/lustre02/work/:/work /work/ka1176/shared_data/singularity/images/ai-4-food-security_latest.sif /bin/bash $scriptdir_c/singularity_run.sh
+singularity exec --bind /mnt/lustre02/work/:/work --bind /scratch/k/$USER/singularity/cache:/miniconda3/envs/ai4foodsecurity/nni /work/ka1176/shared_data/singularity/images/ai-4-food-security_latest.sif /bin/bash $scriptdir_c/singularity_run.sh
 ```
 
 ### Starting NNI trials
 
-TODO
+TODO - Adapt the script from AI4EO challenge, and take care to add the `--bind /scratch/k/$USER/singularity/cache:/miniconda3/envs/ai4foodsecurity/nni`
