@@ -92,7 +92,7 @@ def main(args):
 
     # Initialize model optimizer and loss criterion:
     optimizer = Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
-    criterion = CrossEntropyLoss(reduction="mean")
+    #criterion = CrossEntropyLoss(reduction="mean")
 
     # training
     best_loss = np.inf

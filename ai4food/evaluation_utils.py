@@ -54,9 +54,9 @@ def bin_cross_entr_each_crop(logprobs, y_true, classes, device, args):
     :return: sum of binary cross entropy for each class 
     '''
     bin_ce = 0
-    sig = nn.Sigmoid()
+    sm = nn.Softmax()
     loss_bc = nn.BCELoss()
-    y_prob = sig(logprobs)
+    y_prob = sm(logprobs)
     # convert to one-hot representation
     y_true_onehot = torch.FloatTensor(args.batch_size, classes)
     y_true_onehot.zero_()
