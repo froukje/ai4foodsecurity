@@ -162,7 +162,7 @@ class Preprocessor(object):
             self.custom_size = self.args.t_image_size 
         else:
             if self.args.t_random_extraction > 0:
-                self.custom_transform = 'random_extraction'
+                self.custom_transform = 'extract_transform'
                 self.custom_size = self.args.t_random_extraction
             else:
                 print('Select spatial average transform')
@@ -424,10 +424,12 @@ class Preprocessor(object):
             mask_dims  = (custom_size, custom_size,)
         elif custom_transform == 'extract_transform':
             image_dims = (time_size, band_size, custom_size)
-            mask_dims = ()
+            mask_dims = (custom_size,)
         elif custom_transform == 'average_transform':
             image_dims = (time_size, band_size, custom_size)
             mask_dims = ()
+        else:
+            raise ValueError("Not supported: ", custom_transform)
 
         # save
         h5_file = h5py.File(filename, 'w')
@@ -491,7 +493,7 @@ if __name__=='__main__':
     parser.add_argument('--target-sub-dir', type=str, default='default', help='subdirectory for storing the processed data in /dev_data/{region}/{source}')
     parser.add_argument('--region', type=str, choices=['south-africa', 'germany'],
                         default='south-africa', help='Select region')
-    parser.add_argument('--n-processes', type=int, default=1)
+    parser.add_argument('--n-processes', type=int, default=64)
     parser.add_argument('--min-area-to-ignore', type=float, default=1000, help='Fields below minimum area are ignored')
     parser.add_argument('--overwrite', action='store_true', help='overwrite npz data')
     # transformer arguments
