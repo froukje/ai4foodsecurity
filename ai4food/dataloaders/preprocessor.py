@@ -110,7 +110,13 @@ class Preprocessor(object):
         for reader in self.train_readers:
             raw_ds = Preprocessor.extend_dataset(reader, self.keys, raw_ds)
 
-        Preprocessor.create_hdf5(raw_ds, self.keys, self.time_size_train, self.band_size, self.args.t_image_size, os.path.join(self.target_dir, 'train_data.h5'))
+        Preprocessor.create_hdf5(raw_ds, 
+                                 self.keys, 
+                                 self.time_size_train, 
+                                 self.band_size, 
+                                 self.custom_transform, 
+                                 self.custom_size, 
+                                 os.path.join(self.target_dir, 'train_data.h5'))
 
         # test 
         raw_ds = {key:[] for key in self.keys}
@@ -118,7 +124,14 @@ class Preprocessor(object):
         for reader in self.test_readers:
             raw_ds = Preprocessor.extend_dataset(reader, self.keys, raw_ds)
 
-        Preprocessor.create_hdf5(raw_ds, self.keys, self.time_size_test, self.band_size, self.args.t_image_size, os.path.join(self.target_dir, 'test_data.h5'))
+        Preprocessor.create_hdf5(raw_ds, 
+                                 self.keys, 
+                                 self.time_size_train, 
+                                 self.band_size, 
+                                 self.custom_transform, 
+                                 self.custom_size, 
+                                 os.path.join(self.target_dir, 'test_data.h5'))
+
 
     def _setup_transform(self):
         '''
@@ -127,19 +140,36 @@ class Preprocessor(object):
 
         if self.args.data_source == 'planet' or self.args.data_source == 'planet-5':
             transform = PlanetTransform(spatial_encoder=self.args.t_spatial_encoder,
+                                        random_extraction=self.args.t_random_extraction,
                                         normalize=self.args.t_normalize,
                                         image_size=self.args.t_image_size)
 
         elif self.args.data_source == 'sentinel-1':
             transform = Sentinel1Transform(spatial_encoder=self.args.t_spatial_encoder,
+                                           random_extraction=self.args.t_random_extraction,
                                            normalize=self.args.t_normalize,
                                            image_size=self.args.t_image_size)
         elif self.args.data_source == 'sentinel-2':
             transform = Sentinel2Transform(spatial_encoder=self.args.t_spatial_encoder,
+                                           random_extraction=self.args.t_random_extraction,
                                            normalize=self.args.t_normalize,
                                            image_size=self.args.t_image_size)
 
         self.transform = transform
+
+        if self.args.t_spatial_encoder: # image transform
+            self.custom_transform = 'image_transform'
+            self.custom_size = self.args.t_image_size 
+        else:
+            if self.args.t_random_extraction > 0:
+                self.custom_transform = 'extract_transform'
+                self.custom_size = self.args.t_random_extraction
+            else:
+                print('Select spatial average transform')
+                self.custom_transform = 'average_transform'
+                self.custom_size = 1
+
+        print(f'Transform {self.custom_transform} with size {self.custom_size}')
 
     def _setup_data_paths(self):
         '''
@@ -354,7 +384,10 @@ class Preprocessor(object):
                 elif key == 'label':
                    raw_ds[key].append(sample[1])
                 elif key == 'mask':
-                   raw_ds[key].extend(sample[2].astype(np.float32))
+                   if sample[2].shape == ():
+                       raw_ds[key].append(sample[2].astype(np.float32))
+                   else:
+                       raw_ds[key].extend(sample[2].astype(np.float32))
                 elif key == 'fid':
                    raw_ds[key].append(sample[3])
                 elif key == 'crop_name':
@@ -365,7 +398,7 @@ class Preprocessor(object):
         return raw_ds
 
     @staticmethod
-    def create_hdf5(raw_ds, keys, time_size, band_size, image_size, filename):
+    def create_hdf5(raw_ds, keys, time_size, band_size, custom_transform, custom_size, filename):
         '''
         Save raw_ds to filename (hdf5)
         
@@ -374,16 +407,29 @@ class Preprocessor(object):
         keys   : keys for the hdf5 file
         time_size : size along time dimension
         band_size : size along the band dimension
-        image_size : size along the width & height dimension
+        custom_transform : which custom transform was applied (determines shape)
+        custom_size : size along the width & height dimension (image transform)
+                      size of random extracted pixels (extraction transform)
+                      size of 1 (average transform)
         filename : target file name
         '''
 
         n_samples = len(raw_ds['label'])
         print(f'Total samples available in {filename}: {n_samples}')
 
-        image_dims = (time_size, band_size, image_size, image_size,)
         chunk_size = 100
-        mask_dims  = (image_size, image_size,)
+
+        if custom_transform == 'image_transform':
+            image_dims = (time_size, band_size, custom_size, custom_size,)
+            mask_dims  = (custom_size, custom_size,)
+        elif custom_transform == 'extract_transform':
+            image_dims = (time_size, band_size, custom_size)
+            mask_dims = (custom_size,)
+        elif custom_transform == 'average_transform':
+            image_dims = (time_size, band_size, custom_size)
+            mask_dims = ()
+        else:
+            raise ValueError("Not supported: ", custom_transform)
 
         # save
         h5_file = h5py.File(filename, 'w')
@@ -447,13 +493,14 @@ if __name__=='__main__':
     parser.add_argument('--target-sub-dir', type=str, default='default', help='subdirectory for storing the processed data in /dev_data/{region}/{source}')
     parser.add_argument('--region', type=str, choices=['south-africa', 'germany'],
                         default='south-africa', help='Select region')
-    parser.add_argument('--n-processes', type=int, default=1)
+    parser.add_argument('--n-processes', type=int, default=64)
     parser.add_argument('--min-area-to-ignore', type=float, default=1000, help='Fields below minimum area are ignored')
     parser.add_argument('--overwrite', action='store_true', help='overwrite npz data')
     # transformer arguments
     parser.add_argument('--t-spatial-encoder', action='store_true', help='Transformer variable')
     parser.add_argument('--t-normalize', action='store_true', help='Transformer variable')
     parser.add_argument('--t-image-size', type=int, default=32, help='Transformer variable')
+    parser.add_argument('--t-random-extraction', type=int, default=0, help='Transformer variable')
 
     args = parser.parse_args()
 

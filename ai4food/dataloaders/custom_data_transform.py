@@ -14,17 +14,22 @@ class EOTransformer():
     """
     THIS CLASS DEFINE A SAMPLE TRANSFORMER FOR DATA AUGMENTATION IN THE TRAINING, VALIDATION, AND TEST DATA LOADING
     """
-    def __init__(self,spatial_encoder=True, normalize=True, image_size=32):
+    def __init__(self,spatial_encoder=True, normalize=True, random_extraction=0, image_size=32):
         '''
         THIS FUNCTION INITIALIZES THE DATA TRANSFORMER.
         :param spatial_encoder: It determine if spatial information will be exploited or not. It should be determined in line with the training model.
         :param normalize: It determine if the data to be normalized or not. Default is TRUE
+        :param random_extraction: If larger than 0, randomly extract N pixels from the image. Default is 0
         :param image_size: It determine how the data is partitioned into the NxN windows. Default is 32x32
         :return: None
         '''
         self.spatial_encoder = spatial_encoder
         self.image_size=image_size
         self.normalize=normalize
+        self.random_extraction = random_extraction
+
+        if self.spatial_encoder and self.random_extraction > 0:
+            raise ValueError("Cannot use spatial encoder and random extraction at the same time")
 
     def transform(self,image_stack, mask=None):
         '''
@@ -34,9 +39,30 @@ class EOTransformer():
         :param mask: It is spatial mask of the image, to filter out uninterested areas. It is not required in case of having non-spatial data
         :return: image_stack, mask
                 '''
-        if self.spatial_encoder == False:  # average over field mask: T, D = image_stack.shape
-            image_stack = image_stack[:, :, mask > 0].mean(2)
-            mask = -1  # mask is meaningless now but needs to be constant size for batching
+        if self.spatial_encoder == False:  
+            if self.random_extraction == 0: # average over field mask: T, D = image_stack.shape
+                image_stack = image_stack[:, :, mask > 0].mean(2)
+                mask = np.array(-1)  # mask is meaningless now but needs to be constant size for batching
+            else:
+                # according to https://github.com/VSainteuf/lightweight-temporal-attention-pytorch/blob/master/dataset.py
+                image_stack_shape = image_stack.shape
+                mask_shape = mask.shape
+
+                image_stack = image_stack.reshape((image_stack.shape[0], image_stack.shape[1], -1))
+                mask = mask.flatten()
+
+                good_pixel_ixs = np.where(mask>0)[0]
+
+                if len(good_pixel_ixs) < self.random_extraction: # too few pixels - need to resample
+                    sel_ixs = np.random.choice(len(good_pixel_ixs), size=self.random_extraction, replace=True)
+                else:
+                    sel_ixs = np.random.choice(len(good_pixel_ixs), size=self.random_extraction, replace=False)
+
+                pixel_ix = good_pixel_ixs[sel_ixs]
+
+                image_stack = image_stack[:, :, pixel_ix]
+                mask = pixel_ix # return the pixels we used
+
         else:  # crop/pad image to fixed size + augmentations: T, D, H, W = image_stack.shape
             if image_stack.shape[2] >= self.image_size and image_stack.shape[3] >= self.image_size:
                 image_stack, mask = random_crop(image_stack, mask, self.image_size)
