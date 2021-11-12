@@ -108,6 +108,7 @@ class PlanetDataset(EarthObservationDataset):
         super().__init__(args)
         if args.ndvi:
             ndvi = PlanetDataset._calc_ndvi(self.X)
+            #ndvi = np.expand_dims(ndvi, axis=1)
             self.X = np.concatenate([self.X, ndvi], axis=1)
 
 
