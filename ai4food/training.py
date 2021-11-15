@@ -13,8 +13,7 @@ from evaluation_utils import metrics, train_epoch, validation_epoch, save_predic
 
 sys.path.append('../notebooks/starter_files/')
 from utils.data_transform import PlanetTransform
-from utils.baseline_models import SpatiotemporalModel
-#from utils import train_valid_eval_utils as tveu
+from baseline_models import SpatiotemporalModel
 
 import torch
 from torch import nn
@@ -62,8 +61,9 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # instatiate the model
-    input_dim = args.input_dim + int(args.ndvi)
-    model = SpatiotemporalModel(input_dim=input_dim, num_classes=len(label_ids), sequencelength=args.sequence_length, device=device)
+    #input_dim = args.input_dim + int(args.ndvi)*4
+    model = SpatiotemporalModel(input_dim=args.input_dim, num_classes=len(label_ids), sequencelength=args.sequence_length, 
+                                spatial_backbone=args.spatial_backbone, temporal_backbone=args.temporal_backbone, device=device)
     
     if torch.cuda.is_available():
         model = model.cuda()
@@ -192,7 +192,8 @@ def add_nni_params(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dev-data-dir', type=str, default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/south-africa/planet_5day/default')
+    parser.add_argument('--dev-data-dir', type=str, 
+                        default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/south-africa/planet_5day/default')
     parser.add_argument('--target-dir', type=str, default='.')
     parser.add_argument('--split', type=str, default='train', choices=['train', 'test']) 
     parser.add_argument('--nni', action='store_true', default=False)
@@ -204,6 +205,13 @@ if __name__ == '__main__':
     parser.add_argument('--input-dim', type=int, default=4)
     parser.add_argument('--sequence-length', type=int, default=74)
     parser.add_argument('--ndvi', action='store_true', default=False)
+    parser.add_argument('--temporal-backbone', type=str, default='lstm', 
+                        choices=["inceptiontime", "lstm", "msresnet", "starrnn", "tempcnn", "transformermodel"])
+    parser.add_argument('--spatial-backbone', type=str, default='mobilenet_v3_small', 
+                        choices=['resnet18', 'resnet34', 'resnet50', 'resnet101','resnext50_32x4d','resnext50_32x4d',
+                                'wide_resnet50_2', 'mobilenet_v3_large',
+                                "mobilenet_v3_small", 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16',
+                                'vgg16_bn', 'vgg19_bn', 'vgg19', "alexnet", 'squeezenet1_0'])
     parser.add_argument('--fill-value', type=bool, default=0)
     args = parser.parse_args()
 
@@ -216,5 +224,4 @@ if __name__ == '__main__':
     print('end args keys / value\n')
 
     main(args)
-
 
