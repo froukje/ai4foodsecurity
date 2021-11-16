@@ -50,3 +50,43 @@ There are several parameters that can be changed. When running from the containe
 `python3 training.py --dev-data-dir '/swork/shared_data/2021-ai4food/dev_data/south-africa/planet/default'`
 
 If `--save-preds` is set to `True` the predictions are saved to a .json file. Depending on whether `--split` is set to `train` or `test` the predictions are made on the validation or test set, repectively.
+
+## Hyperparametertuning using nni
+
+In order to use nni, the flag `--nni` has to be set.
+
+*Note:* In the image `..._latest.sif` the current nni version is 2.4, this leads to some problems, so I downgraded it to 2.3 and built a new image`..._nni.sif`, it is also stored in `shared_data/singularity/images` and has to be used, when nni is used - this can be converted in the `.._latest.sif` version in future.
+
+Allocate a node on vader, e.g.: `salloc -A k20200 -n 1 -p amd --exclusive`
+
+Run the following script:
+`
+#SBATCH --mem=0 # use entire memory of node
+#SBATCH --exclusive # do not share node
+#SBATCH --time=12:00:00 # limit of total run time
+#SBACTH --mail-type=FAIL
+#SBATCH --account=k20200
+#SBATCH --nodelist vader1
+
+hostname
+
+module load /sw/spack-amd/spack/modules/linux-centos8-zen2/singularity/3.7.0-gcc-10.2.0
+
+gitdir_c=/swork/frauke/ai4foodsecurity/nni  # gitlab dir (change this to gitlab directory as it would appear in the container)
+scriptdir_c=/swork/frauke/ai4foodsecurity/jobs # script dir (change this to current directory as it would appear in the container)
+
+echo "echo 'HELLO BOX'" > singularity_run_nni.sh
+echo "gitdir=$gitdir_c" >> singularity_run_nni.sh
+echo "conda init" >> singularity_run_nni.sh
+echo "source .bashrc" >> singularity_run_nni.sh
+echo "conda activate ai4foodsecurity" >> singularity_run_nni.sh
+echo "export NNI_OUTPUT_DIR=\$gitdir" >> singularity_run_nni.sh # this is supposed to change the dir of the exp, but it's not working!!
+echo "port=$((8080 + $RANDOM % 10000))" >> singularity_run_nni.sh
+echo "nnictl create -c \$gitdir/config.yml --port \$port || nnictl create -c \$gitdir/config.yml --port \$port || nnictl create -c \$gitdir/config.yml --port \$port || nnictl create -c \$gitdir/config.yml --port \$port" >> singularity_run_nni.sh
+echo "sleep 11h 50m" >> singularity_run_nni.sh
+echo "nnictl stop" >> singularity_run_nni.sh
+
+# execute the singularity container
+singularity exec --nv --bind /scratch/k/k202143/singularity/cache:/miniconda3/envs/ai4foodsecurity/nni --bind /scratch/k/k202143/singularity/cache:/home/jovyan/.cache --bind /mnt/lustre02/work/ka1176:/swork /mnt/lustre02/work/ka1176/frauke/ai4foodsecurity/images/ai-4-food-security_nni.sif bash $scriptdir_c/singularity_run_nni.sh
+"start_nni_job.sh"    
+`
