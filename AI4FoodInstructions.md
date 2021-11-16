@@ -60,7 +60,7 @@ In order to use nni, the flag `--nni` has to be set.
 Allocate a node on vader, e.g.: `salloc -A k20200 -n 1 -p amd --exclusive`
 
 Run the following script:
-`
+```
 #SBATCH --mem=0 # use entire memory of node
 #SBATCH --exclusive # do not share node
 #SBATCH --time=12:00:00 # limit of total run time
@@ -89,4 +89,4 @@ echo "nnictl stop" >> singularity_run_nni.sh
 # execute the singularity container
 singularity exec --nv --bind /scratch/k/k202143/singularity/cache:/miniconda3/envs/ai4foodsecurity/nni --bind /scratch/k/k202143/singularity/cache:/home/jovyan/.cache --bind /mnt/lustre02/work/ka1176:/swork /mnt/lustre02/work/ka1176/frauke/ai4foodsecurity/images/ai-4-food-security_nni.sif bash $scriptdir_c/singularity_run_nni.sh
 "start_nni_job.sh"    
-`
+```
