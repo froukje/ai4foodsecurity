@@ -11,6 +11,6 @@ ai4food/submission.json
 ai4food/__pycache__/
 ai4food/epoch*
 ai4food/dataloaders/__pycache__/
-images/ai-4-food-security_latest.sif
+images/*
 nni/*
 jobs/*

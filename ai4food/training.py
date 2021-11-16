@@ -204,7 +204,8 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', type=int, default=8)
     parser.add_argument('--input-dim', type=int, default=4)
     parser.add_argument('--sequence-length', type=int, default=74)
-    parser.add_argument('--ndvi', action='store_true', default=False)
+    #parser.add_argument('--ndvi', action='store_true', default=False)
+    parser.add_argument('--ndvi', type=int, default=0, choices=[0, 1])
     parser.add_argument('--temporal-backbone', type=str, default='lstm', 
                         choices=["inceptiontime", "lstm", "msresnet", "starrnn", "tempcnn", "transformermodel"])
     parser.add_argument('--spatial-backbone', type=str, default='mobilenet_v3_small', 
