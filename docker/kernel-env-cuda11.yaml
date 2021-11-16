@@ -32,7 +32,7 @@ dependencies:
     - eo-learn==0.9.1  # available on conda, but not latest version
     - sentinelhub==3.3.2  # available on conda, but not latest version
     - breizhcrops==0.0.2.8
-    - nni
+    - nni==2.3
 
     # install via pip because according to iot-salzburg/gpu-jupyter conda install leads to errors
     # have to see if the above works on the vader nodes
