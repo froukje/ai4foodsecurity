@@ -63,7 +63,7 @@ def bin_cross_entr_each_crop(logprobs, y_true, classes, device, args):
     y_true_onehot.scatter_(1,y_true.view(-1,1), 1)
     y_true_ids = torch.argmax(y_true_onehot, dim=1)
     for i in range(args.batch_size):
-        bin_ce += -torch.log(y_prob[i,y_true_ids[i]])
+        bin_ce += -y_true_onehot[i, y_true_ids[i]]* torch.log(y_prob[i,y_true_ids[i]])
     return bin_ce
 
 
