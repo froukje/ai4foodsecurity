@@ -80,7 +80,6 @@ echo "gitdir=$gitdir_c" >> singularity_run_nni.sh
 echo "conda init" >> singularity_run_nni.sh
 echo "source .bashrc" >> singularity_run_nni.sh
 echo "conda activate ai4foodsecurity" >> singularity_run_nni.sh
-echo "export NNI_OUTPUT_DIR=\$gitdir" >> singularity_run_nni.sh # this is supposed to change the dir of the exp, but it's not working!!
 echo "port=$((8080 + $RANDOM % 10000))" >> singularity_run_nni.sh
 echo "nnictl create -c \$gitdir/config.yml --port \$port || nnictl create -c \$gitdir/config.yml --port \$port || nnictl create -c \$gitdir/config.yml --port \$port || nnictl create -c \$gitdir/config.yml --port \$port" >> singularity_run_nni.sh
 echo "sleep 11h 50m" >> singularity_run_nni.sh

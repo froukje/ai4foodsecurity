@@ -21,7 +21,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
-from datasets import EarthObservationDataset, PlanetDataset
+from datasets import EarthObservationDataset, PlanetDataset, Sentinel2Dataset
 
 import numpy as np
 import geopandas as gpd
@@ -33,7 +33,16 @@ import time
 def main(args):
    
     # construct the dataset
-    test_dataset = PlanetDataset(args)
+    datasets = []
+    if 'planet' in args.datasets:
+        test_dataset_planet = PlanetDataset('planet', args)
+        datasets.append(test_dataset_planet)
+    if 'sent2' in args.datasets:
+        test_dataset_sent2 = Sentinel2Dataset('sent2', args)
+        datasets.append(test_dataset_sent2)
+    # Only working for 1 Dataset!
+    test_dataset = torch.utils.data.ConcatDataset(datasets)
+    
     # if training, split dataset in train and valid
     if args.split=='train':
         # lengths of train and valid datasets
@@ -61,7 +70,6 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # instatiate the model
-    #input_dim = args.input_dim + int(args.ndvi)*4
     model = SpatiotemporalModel(input_dim=args.input_dim, num_classes=len(label_ids), sequencelength=args.sequence_length, 
                                 spatial_backbone=args.spatial_backbone, temporal_backbone=args.temporal_backbone, device=device)
     
@@ -194,6 +202,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dev-data-dir', type=str, 
                         default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/south-africa/planet_5day/default')
+    parser.add_argument('--planet-dev-data-dir', type=str, 
+                        default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/south-africa/planet/default')
+    parser.add_argument('--sent2-dev-data-dir', type=str, 
+                        default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/south-africa/sentinel-2/default')
+    parser.add_argument('--datasets', type=str, default='planet', nargs='+', choices=['planet', 'sent2'])
     parser.add_argument('--target-dir', type=str, default='.')
     parser.add_argument('--split', type=str, default='train', choices=['train', 'test']) 
     parser.add_argument('--nni', action='store_true', default=False)

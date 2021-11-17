@@ -16,11 +16,18 @@ class EarthObservationDataset(Dataset):
 
     '''
 
-    def __init__(self, args):
+    def __init__(self, flag, args):
         super().__init__()
         self.args = args
-        self.h5_file = h5py.File(os.path.join(self.args.dev_data_dir, f'{args.split}_data.h5'), 'r')
+        assert flag in ['planet', 'sent2', 'sent1'], "ERROR: Wrong flag for Dataset generation" 
+        if flag == 'planet':
+            data_dir = self.args.planet_dev_data_dir
+        if flag == 'sent2':
+            data_dir = self.args.sent2_dev_data_dir
 
+        #self.h5_file = h5py.File(os.path.join(self.args.dev_data_dir, f'{args.split}_data.h5'), 'r')
+        self.h5_file = h5py.File(os.path.join(data_dir, f'{args.split}_data.h5'), 'r')
+        
         self.X = self.h5_file['image_stack'][:].astype(np.float32)
         self.mask = self.h5_file['mask'][:].astype(bool)
         self.fid = self.h5_file['fid'][:]
@@ -49,21 +56,16 @@ class Sentinel2Dataset(EarthObservationDataset):
     ndvi     : If TRUE, include the NDVI in a band like fashion
     '''
 
-    def __init__(self, args): 
-        super().__init__()
+    def __init__(self, flag, args): 
+        super().__init__(flag, args)
         # TODO select bands
 
         # add NDVI
         if args.ndvi:
             ndvi = Sentinel2Dataset._calc_ndvi(self.X)
+            ndvi = np.expand_dims(ndvi, axis=1)
             self.X = np.concatenate([self.X, ndvi], axis=1)
 
-    def __len__(self):
-        return super().__len__(self)
-
-    def __getitem__(self, idx):
-        return super().__getitem__(self, idx)
-        
 
     @staticmethod
     def _calc_ndvi(X):
@@ -104,8 +106,8 @@ class PlanetDataset(EarthObservationDataset):
     ndvi : if TRUE, include the NDVI in a band like fashion
     '''
 
-    def __init__(self, args): 
-        super().__init__(args)
+    def __init__(self, flag, args): 
+        super().__init__(flag, args)
         if args.ndvi:
             ndvi = PlanetDataset._calc_ndvi(self.X)
             ndvi = np.expand_dims(ndvi, axis=1)
