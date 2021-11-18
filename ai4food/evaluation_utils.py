@@ -86,8 +86,8 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
     with tqdm(enumerate(dataloader), total=len(dataloader),position=0, leave=True) as iterator:
         for idx, batch in iterator:
             optimizer.zero_grad()
-            x, y_true, _, _ = batch
-            logprobs = model(x.to(device))
+            x, y_true, mask, _, extra_features = batch
+            logprobs = model(((x.to(device), mask.to(device)), extra_features.to(device)))
             y_true = y_true.to(device)
 
             eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
@@ -121,8 +121,8 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
         field_ids_list = list()
         with tqdm(enumerate(dataloader), total=len(dataloader), position=0, leave=True) as iterator:
             for idx, batch in iterator:
-                x, y_true, _, field_id = batch
-                logprobs = model(x.to(device))
+                x, y_true, mask, field_id, extra_features = batch
+                logprobs = model(((x.to(device), mask.to(device)), extra_features.to(device)))
                 y_true = y_true.to(device)
                 
                 eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
