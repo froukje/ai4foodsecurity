@@ -2,6 +2,8 @@
 kernels/*
 .ipynb_checkpoints/*
 notebooks/data_exploration/.ipynb_checkpoints/*
+ai4food/.ipynb_checkpoints/
+ai4food/dataloaders/.ipynb_checkpoints/
 notebooks/starter_files/utils/__pycache__/
 ai4food/best_model.pt
 ai4food/train_losses.txt

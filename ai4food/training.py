@@ -15,6 +15,10 @@ sys.path.append('../notebooks/starter_files/')
 from utils.data_transform import PlanetTransform
 from baseline_models import SpatiotemporalModel
 
+path_to_pseltae = "../lightweight-temporal-attention-pytorch/"
+sys.path.append(path_to_pseltae)
+from models.stclassifier import PseLTae, PseTae
+
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -70,8 +74,10 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # instatiate the model
-    model = SpatiotemporalModel(input_dim=args.input_dim, num_classes=len(label_ids), sequencelength=args.sequence_length, 
-                                spatial_backbone=args.spatial_backbone, temporal_backbone=args.temporal_backbone, device=device)
+    if args.use_pselatae:
+        model = PseLTae(**model_config)  #PseTae(**model_config)
+    else:
+        model = SpatiotemporalModel(input_dim=args.input_dim, num_classes=len(label_ids), sequencelength=args.sequence_length, spatial_backbone=args.spatial_backbone, temporal_backbone=args.temporal_backbone, device=device)
     
     if torch.cuda.is_available():
         model = model.cuda()
@@ -197,28 +203,65 @@ def add_nni_params(args):
     args_dict['target_dir'] = nni_path
     return args
 
+def get_paselatae_model_config(input_dim, include_extras=0, verbose=False):
+    # adding PseLTae model configs
+    include_extras = include_extras
+    if include_extras: extra_size = 2
+    else: extra_size = 0
+    mlp2_first_layer = 128 + extra_size
+    config = {
+            'mlp1': [4,32,64],    # Number of neurons in the layers of MLP1
+            'pooling': 'mean_std',   # Pixel-embeddings pooling strategy
+            'mlp2': [mlp2_first_layer,mlp2_first_layer],     # Number of neurons in the layers of MLP2
+            'n_head': 16,             # Number of attention heads
+            'd_k': 8,                # Dimension of the key and query vectors
+            'mlp3': [256,128],     # Number of neurons in the layers of MLP3
+            'dropout': 0.2,          # Dropout probability
+            'T':1000,                # Maximum period for the positional encoding
+            'lms':244,                # Maximum sequence length for positional encoding (only necessary if positions == order) !!! change to 48 for planet-5
+            'positions': 'bespoke',     # Positions to use for the positional encoding (bespoke / order)
+            'mlp4': [128, 64, 32, 20], # tNumber of neurons in the layers of MLP4
+            'd_model': 256,              # size of the embeddings (E), if input vectors are of a different size, a linear layer is used to project them to a d_model-dimensional space
+            'geomfeat': include_extras,   # If 1 the precomputed geometrical features (f) are used in the PSE
+            }
+
+    model_config = dict(input_dim=input_dim, mlp1=config['mlp1'], pooling=config['pooling'],
+                        mlp2=config['mlp2'], n_head=config['n_head'], d_k=config['d_k'], mlp3=config['mlp3'],
+                        dropout=config['dropout'], T=config['T'], len_max_seq=config['lms'],
+                        positions=None, #dt.date_positions if config['positions'] == 'bespoke' else None,
+                        mlp4=config['mlp4'], d_model=config['d_model'])
+    if config['geomfeat']:
+        model_config.update(with_extra=True, extra_size=extra_size) # extra_size number of extra features
+    else:
+        model_config.update(with_extra=False, extra_size=None)
+    
+    if verbose: print('Model configs: ', model_config)
+    
+    return model_config
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dev-data-dir', type=str, 
-                        default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/south-africa/planet_5day/default')
+                        default='../../../shared_data/2021-ai4food/dev_data/south-africa/planet/extracted')
     parser.add_argument('--planet-dev-data-dir', type=str, 
-                        default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/south-africa/planet/default')
+                        default='../../../shared_data/2021-ai4food/dev_data/south-africa/planet/extracted')
     parser.add_argument('--sent2-dev-data-dir', type=str, 
-                        default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/south-africa/sentinel-2/default')
-    parser.add_argument('--datasets', type=str, default='planet', nargs='+', choices=['planet', 'sent2'])
-    parser.add_argument('--target-dir', type=str, default='.')
-    parser.add_argument('--split', type=str, default='train', choices=['train', 'test']) 
+                        default='../../../shared_data/2021-ai4food/dev_data/south-africa/sentinel-2/default')
+    parser.add_argument('--include-extras', type=int, default=0, choices=[0, 1])
+    parser.add_argument('--datasets', type=str, default='planet', nargs='+', choices=['planet','labels','sent2'])
+    parser.add_argument('--target-dir', type=str, default='./pseltae')
+    parser.add_argument('--split', type=str, default='test', choices=['train', 'test']) 
     parser.add_argument('--nni', action='store_true', default=False)
-    parser.add_argument('--save-preds', action='store_true', default=False) 
-    parser.add_argument('--max-epochs', type=int, default=10)
-    parser.add_argument('--patience', type=int, default=5)
+    parser.add_argument('--save-preds', action='store_true', default=True) 
+    parser.add_argument('--max-epochs', type=int, default=100)
+    parser.add_argument('--patience', type=int, default=10)
     parser.add_argument('--checkpoint-epoch', type=int, default=20)
     parser.add_argument('--batch-size', type=int, default=8)
     parser.add_argument('--input-dim', type=int, default=4)
     parser.add_argument('--sequence-length', type=int, default=74)
     #parser.add_argument('--ndvi', action='store_true', default=False)
     parser.add_argument('--ndvi', type=int, default=0, choices=[0, 1])
+    parser.add_argument('--use-pselatae', type=int, default=1, choices=[0,1])
     parser.add_argument('--temporal-backbone', type=str, default='lstm', 
                         choices=["inceptiontime", "lstm", "msresnet", "starrnn", "tempcnn", "transformermodel"])
     parser.add_argument('--spatial-backbone', type=str, default='mobilenet_v3_small', 
@@ -236,6 +279,11 @@ if __name__ == '__main__':
     for key, value in vars(args).items():
         print(f'{key:20s}: {value}')
     print('end args keys / value\n')
-
+    
+    if args.use_pselatae:
+        model_config = get_paselatae_model_config(args.input_dim, args.include_extras, verbose=True)
+        args.model_config = model_config
+        
     main(args)
+
 
