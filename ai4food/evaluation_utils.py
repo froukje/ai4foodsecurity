@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import sklearn.metrics
+#import tensorflow as tf
 import torch
 import torch.nn as nn
 from tqdm import tqdm
@@ -57,13 +58,24 @@ def bin_cross_entr_each_crop(logprobs, y_true, classes, device, args):
     sm = nn.Softmax(dim=1)
     y_prob = sm(logprobs)
     # convert to one-hot representation
-    y_true_onehot = torch.FloatTensor(args.batch_size, classes)
-    y_true_onehot.zero_()
-    y_true_onehot= y_true_onehot.to(device)
-    y_true_onehot.scatter_(1,y_true.view(-1,1), 1)
-    y_true_ids = torch.argmax(y_true_onehot, dim=1)
-    for i in range(args.batch_size):
-        bin_ce += -y_true_onehot[i, y_true_ids[i]]* torch.log(y_prob[i,y_true_ids[i]])
+    y_prob_ids = torch.argmax(y_prob, dim=1)
+    y_pred_onehot = nn.functional.one_hot(y_prob_ids, num_classes=5).float()
+    y_true_onehot = nn.functional.one_hot(y_true, num_classes=5).float()
+    
+    #y_prob_clipped = torch.clip(y_pred_onehot, 1e-7, 1-1e-7)
+    y_prob_clipped = torch.clip(y_prob, 1e-7, 1-1e-7)
+    
+    #loss_batch = -torch.log(y_prob_clipped[range(len(y_pred_onehot)), y_true])
+    loss_batch = -torch.log(y_prob_clipped[range(len(y_prob)), y_true])
+    bin_ce = torch.sum(loss_batch)
+
+    #y_true_onehot = y_true_onehot.cpu().numpy()
+    #y_pred_onehot = y_pred_onehot.detach().cpu().numpy()
+    #y_true_onehot = tf.convert_to_tensor(y_true_onehot)
+    #y_pred_onehot = tf.convert_to_tensor(y_pred_onehot)
+    #cross_entropy_func = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
+    #bin_ce = cross_entropy_func(y_true_onehot, y_pred_onehot).numpy()
+    #bin_ce = torch.tensor(bin_ce)
     return bin_ce
 
 
@@ -124,7 +136,6 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
                 x, y_true, _, field_id = batch
                 logprobs = model(x.to(device))
                 y_true = y_true.to(device)
-                
                 eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
                 eval_metrics.append(eval_metric)
                 loss = criterion(logprobs, y_true.to(device))

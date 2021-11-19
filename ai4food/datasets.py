@@ -16,17 +16,10 @@ class EarthObservationDataset(Dataset):
 
     '''
 
-    def __init__(self, flag, args):
+    def __init__(self, args):
         super().__init__()
         self.args = args
-        assert flag in ['planet', 'sent2', 'sent1'], "ERROR: Wrong flag for Dataset generation" 
-        if flag == 'planet':
-            data_dir = self.args.planet_dev_data_dir
-        if flag == 'sent2':
-            data_dir = self.args.sent2_dev_data_dir
-
-        #self.h5_file = h5py.File(os.path.join(self.args.dev_data_dir, f'{args.split}_data.h5'), 'r')
-        self.h5_file = h5py.File(os.path.join(data_dir, f'{args.split}_data.h5'), 'r')
+        self.h5_file = h5py.File(os.path.join(self.args.dev_data_dir, f'{args.split}_data.h5'), 'r')
         
         self.X = self.h5_file['image_stack'][:].astype(np.float32)
         self.mask = self.h5_file['mask'][:].astype(bool)
@@ -56,8 +49,8 @@ class Sentinel2Dataset(EarthObservationDataset):
     ndvi     : If TRUE, include the NDVI in a band like fashion
     '''
 
-    def __init__(self, flag, args): 
-        super().__init__(flag, args)
+    def __init__(self, args): 
+        super().__init__(args)
         # TODO select bands
 
         # add NDVI
@@ -106,8 +99,8 @@ class PlanetDataset(EarthObservationDataset):
     ndvi : if TRUE, include the NDVI in a band like fashion
     '''
 
-    def __init__(self, flag, args): 
-        super().__init__(flag, args)
+    def __init__(self, args): 
+        super().__init__(args)
         if args.ndvi:
             ndvi = PlanetDataset._calc_ndvi(self.X)
             ndvi = np.expand_dims(ndvi, axis=1)

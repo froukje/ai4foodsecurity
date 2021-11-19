@@ -33,15 +33,7 @@ import time
 def main(args):
    
     # construct the dataset
-    datasets = []
-    if 'planet' in args.datasets:
-        test_dataset_planet = PlanetDataset('planet', args)
-        datasets.append(test_dataset_planet)
-    if 'sent2' in args.datasets:
-        test_dataset_sent2 = Sentinel2Dataset('sent2', args)
-        datasets.append(test_dataset_sent2)
-    # Only working for 1 Dataset!
-    test_dataset = torch.utils.data.ConcatDataset(datasets)
+    test_dataset = PlanetDataset(args)
     
     # if training, split dataset in train and valid
     if args.split=='train':
@@ -202,11 +194,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dev-data-dir', type=str, 
                         default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/south-africa/planet_5day/default')
-    parser.add_argument('--planet-dev-data-dir', type=str, 
-                        default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/south-africa/planet/default')
-    parser.add_argument('--sent2-dev-data-dir', type=str, 
-                        default='/mnt/lustre02/work/ka1176/shared_data/2021-ai4food/dev_data/south-africa/sentinel-2/default')
-    parser.add_argument('--datasets', type=str, default='planet', nargs='+', choices=['planet', 'sent2'])
     parser.add_argument('--target-dir', type=str, default='.')
     parser.add_argument('--split', type=str, default='train', choices=['train', 'test']) 
     parser.add_argument('--nni', action='store_true', default=False)
