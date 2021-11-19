@@ -208,7 +208,7 @@ def get_paselatae_model_config(input_dim, verbose=False):
     config = {
             'mlp1': [4,32,64],    # Number of neurons in the layers of MLP1
             'pooling': 'mean_std',   # Pixel-embeddings pooling strategy
-            'mlp2': [128,128],     # Number of neurons in the layers of MLP2
+            'mlp2': [130,128],     # Number of neurons in the layers of MLP2
             'n_head': 16,             # Number of attention heads
             'd_k': 8,                # Dimension of the key and query vectors
             'mlp3': [256,128],     # Number of neurons in the layers of MLP3
@@ -218,7 +218,7 @@ def get_paselatae_model_config(input_dim, verbose=False):
             'positions': 'bespoke',     # Positions to use for the positional encoding (bespoke / order)
             'mlp4': [128, 64, 32, 20], # tNumber of neurons in the layers of MLP4
             'd_model': 256,              # size of the embeddings (E), if input vectors are of a different size, a linear layer is used to project them to a d_model-dimensional space
-            'geomfeat': 0,               # If 1 the precomputed geometrical features (f) are used in the PSE. change from original implementation for now
+            'geomfeat': 1,               # If 1 the precomputed geometrical features (f) are used in the PSE
             }
 
     model_config = dict(input_dim=input_dim, mlp1=config['mlp1'], pooling=config['pooling'],
@@ -227,7 +227,7 @@ def get_paselatae_model_config(input_dim, verbose=False):
                         positions=None, #dt.date_positions if config['positions'] == 'bespoke' else None,
                         mlp4=config['mlp4'], d_model=config['d_model'])
     if config['geomfeat']:
-        model_config.update(with_extra=True, extra_size=4) # extra_size number of extra features
+        model_config.update(with_extra=True, extra_size=2) # extra_size number of extra features
     else:
         model_config.update(with_extra=False, extra_size=None)
     
@@ -249,8 +249,8 @@ if __name__ == '__main__':
     parser.add_argument('--split', type=str, default='train', choices=['train', 'test']) 
     parser.add_argument('--nni', action='store_true', default=False)
     parser.add_argument('--save-preds', action='store_true', default=False) 
-    parser.add_argument('--max-epochs', type=int, default=30)
-    parser.add_argument('--patience', type=int, default=5)
+    parser.add_argument('--max-epochs', type=int, default=100)
+    parser.add_argument('--patience', type=int, default=10)
     parser.add_argument('--checkpoint-epoch', type=int, default=20)
     parser.add_argument('--batch-size', type=int, default=8)
     parser.add_argument('--input-dim', type=int, default=4)
