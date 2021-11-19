@@ -17,7 +17,7 @@ from baseline_models import SpatiotemporalModel
 
 path_to_pseltae = "../lightweight-temporal-attention-pytorch/"
 sys.path.append(path_to_pseltae)
-from models.stclassifier import PseLTae
+from models.stclassifier import PseLTae, PseTae
 
 import torch
 from torch import nn
@@ -75,7 +75,7 @@ def main(args):
 
     # instatiate the model
     if args.use_pselatae:
-        model = PseLTae(**model_config)
+        model = PseLTae(**model_config)  #PseTae(**model_config)
     else:
         model = SpatiotemporalModel(input_dim=args.input_dim, num_classes=len(label_ids), sequencelength=args.sequence_length, spatial_backbone=args.spatial_backbone, temporal_backbone=args.temporal_backbone, device=device)
     
@@ -203,12 +203,16 @@ def add_nni_params(args):
     args_dict['target_dir'] = nni_path
     return args
 
-def get_paselatae_model_config(input_dim, verbose=False):
+def get_paselatae_model_config(input_dim, include_extras=0, verbose=False):
     # adding PseLTae model configs
+    include_extras = include_extras
+    if include_extras: extra_size = 2
+    else: extra_size = 0
+    mlp2_first_layer = 128 + extra_size
     config = {
             'mlp1': [4,32,64],    # Number of neurons in the layers of MLP1
             'pooling': 'mean_std',   # Pixel-embeddings pooling strategy
-            'mlp2': [130,128],     # Number of neurons in the layers of MLP2
+            'mlp2': [mlp2_first_layer,mlp2_first_layer],     # Number of neurons in the layers of MLP2
             'n_head': 16,             # Number of attention heads
             'd_k': 8,                # Dimension of the key and query vectors
             'mlp3': [256,128],     # Number of neurons in the layers of MLP3
@@ -218,7 +222,7 @@ def get_paselatae_model_config(input_dim, verbose=False):
             'positions': 'bespoke',     # Positions to use for the positional encoding (bespoke / order)
             'mlp4': [128, 64, 32, 20], # tNumber of neurons in the layers of MLP4
             'd_model': 256,              # size of the embeddings (E), if input vectors are of a different size, a linear layer is used to project them to a d_model-dimensional space
-            'geomfeat': 1,               # If 1 the precomputed geometrical features (f) are used in the PSE
+            'geomfeat': include_extras,   # If 1 the precomputed geometrical features (f) are used in the PSE
             }
 
     model_config = dict(input_dim=input_dim, mlp1=config['mlp1'], pooling=config['pooling'],
@@ -227,7 +231,7 @@ def get_paselatae_model_config(input_dim, verbose=False):
                         positions=None, #dt.date_positions if config['positions'] == 'bespoke' else None,
                         mlp4=config['mlp4'], d_model=config['d_model'])
     if config['geomfeat']:
-        model_config.update(with_extra=True, extra_size=2) # extra_size number of extra features
+        model_config.update(with_extra=True, extra_size=extra_size) # extra_size number of extra features
     else:
         model_config.update(with_extra=False, extra_size=None)
     
@@ -243,12 +247,12 @@ if __name__ == '__main__':
                         default='../../../shared_data/2021-ai4food/dev_data/south-africa/planet/extracted')
     parser.add_argument('--sent2-dev-data-dir', type=str, 
                         default='../../../shared_data/2021-ai4food/dev_data/south-africa/sentinel-2/default')
-    parser.add_argument('--include-extras', type=int, default=1, choices=[0, 1])
+    parser.add_argument('--include-extras', type=int, default=0, choices=[0, 1])
     parser.add_argument('--datasets', type=str, default='planet', nargs='+', choices=['planet','labels','sent2'])
-    parser.add_argument('--target-dir', type=str, default='.')
-    parser.add_argument('--split', type=str, default='train', choices=['train', 'test']) 
+    parser.add_argument('--target-dir', type=str, default='./pseltae')
+    parser.add_argument('--split', type=str, default='test', choices=['train', 'test']) 
     parser.add_argument('--nni', action='store_true', default=False)
-    parser.add_argument('--save-preds', action='store_true', default=False) 
+    parser.add_argument('--save-preds', action='store_true', default=True) 
     parser.add_argument('--max-epochs', type=int, default=100)
     parser.add_argument('--patience', type=int, default=10)
     parser.add_argument('--checkpoint-epoch', type=int, default=20)
@@ -277,7 +281,7 @@ if __name__ == '__main__':
     print('end args keys / value\n')
     
     if args.use_pselatae:
-        model_config = get_paselatae_model_config(args.input_dim, verbose=True)
+        model_config = get_paselatae_model_config(args.input_dim, args.include_extras, verbose=True)
         args.model_config = model_config
         
     main(args)
