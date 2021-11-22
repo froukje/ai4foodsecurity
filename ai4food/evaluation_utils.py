@@ -148,6 +148,27 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
         return torch.stack(losses), torch.cat(y_true_list), torch.cat(y_pred_list), torch.cat(y_score_list), torch.cat(field_ids_list), torch.stack(eval_metrics)
 
 
+def save_reference(data_loader, device, label_ids, label_names, args):
+    # list of dictionaries with predictions:
+    output_list=[]
+
+    with torch.no_grad():
+        with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
+            for idx, batch in iterator:
+                _, y_true, _, fid = batch
+                output_list.append({'fid': fid.cpu().detach().numpy()[0],
+                                'crop_id': label_ids[y_true],
+                                'crop_name': label_names[y_true]})
+
+    #  save predictions into output json:
+    if args.split == 'train':
+        output_name = os.path.join(args.target_dir, 'reference_val.json')
+        print(f'Reference for validation was saved to location: {(output_name)}')
+        output_frame = pd.DataFrame.from_dict(output_list)
+        output_frame.to_json(output_name)
+    else:
+        print(f'No reference was saved')
+
 
 def save_predictions(save_model_path, model, data_loader, device, label_ids, label_names, args):
     if os.path.exists(save_model_path):
