@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import sklearn.metrics
+#import tensorflow as tf
 import torch
 import torch.nn as nn
 from tqdm import tqdm
@@ -57,13 +58,24 @@ def bin_cross_entr_each_crop(logprobs, y_true, classes, device, args):
     sm = nn.Softmax(dim=1)
     y_prob = sm(logprobs)
     # convert to one-hot representation
-    y_true_onehot = torch.FloatTensor(args.batch_size, classes)
-    y_true_onehot.zero_()
-    y_true_onehot= y_true_onehot.to(device)
-    y_true_onehot.scatter_(1,y_true.view(-1,1), 1)
-    y_true_ids = torch.argmax(y_true_onehot, dim=1)
-    for i in range(args.batch_size):
-        bin_ce += -y_true_onehot[i, y_true_ids[i]]* torch.log(y_prob[i,y_true_ids[i]])
+    y_prob_ids = torch.argmax(y_prob, dim=1)
+    y_pred_onehot = nn.functional.one_hot(y_prob_ids, num_classes=5).float()
+    y_true_onehot = nn.functional.one_hot(y_true, num_classes=5).float()
+    
+    #y_prob_clipped = torch.clip(y_pred_onehot, 1e-7, 1-1e-7)
+    y_prob_clipped = torch.clip(y_prob, 1e-7, 1-1e-7)
+    
+    #loss_batch = -torch.log(y_prob_clipped[range(len(y_pred_onehot)), y_true])
+    loss_batch = -torch.log(y_prob_clipped[range(len(y_prob)), y_true])
+    bin_ce = torch.sum(loss_batch)
+
+    #y_true_onehot = y_true_onehot.cpu().numpy()
+    #y_pred_onehot = y_pred_onehot.detach().cpu().numpy()
+    #y_true_onehot = tf.convert_to_tensor(y_true_onehot)
+    #y_pred_onehot = tf.convert_to_tensor(y_pred_onehot)
+    #cross_entropy_func = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
+    #bin_ce = cross_entropy_func(y_true_onehot, y_pred_onehot).numpy()
+    #bin_ce = torch.tensor(bin_ce)
     return bin_ce
 
 
@@ -136,7 +148,6 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
                     if args.use_pselatae: logprobs = model((x.to(device), mask.to(device)))
                     else: logprobs = model(x.to(device))
                 y_true = y_true.to(device)
-                
                 eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
                 eval_metrics.append(eval_metric)
                 loss = criterion(logprobs, y_true.to(device))
@@ -148,6 +159,27 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
                 field_ids_list.append(field_id)
         return torch.stack(losses), torch.cat(y_true_list), torch.cat(y_pred_list), torch.cat(y_score_list), torch.cat(field_ids_list), torch.stack(eval_metrics)
 
+
+def save_reference(data_loader, device, label_ids, label_names, args):
+    # list of dictionaries with predictions:
+    output_list=[]
+
+    with torch.no_grad():
+        with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
+            for idx, batch in iterator:
+                _, y_true, _, fid = batch
+                output_list.append({'fid': fid.cpu().detach().numpy()[0],
+                                'crop_id': label_ids[y_true],
+                                'crop_name': label_names[y_true]})
+
+    #  save predictions into output json:
+    if args.split == 'train':
+        output_name = os.path.join(args.target_dir, 'reference_val.json')
+        print(f'Reference for validation was saved to location: {(output_name)}')
+        output_frame = pd.DataFrame.from_dict(output_list)
+        output_frame.to_json(output_name)
+    else:
+        print(f'No reference was saved')
 
 
 def save_predictions(save_model_path, model, data_loader, device, label_ids, label_names, args):
