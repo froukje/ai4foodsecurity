@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 import h5py
 import os
 import numpy as np
+import geopandas as gpd
 
 class EarthObservationDataset(Dataset):
     '''
@@ -25,7 +26,16 @@ class EarthObservationDataset(Dataset):
         self.mask = self.h5_file['mask'][:].astype(bool)
         self.fid = self.h5_file['fid'][:]
         self.labels = self.h5_file['label'][:]
-
+        
+        if args.include_extras:
+            labels_path='/work/ka1176/shared_data/2021-ai4food/labels_combined.geojson' # when moved to data dir change to os.path.join(data_dir,'labels_combined.geojson')
+            extras=gpd.read_file(labels_path)
+            crop_area = np.array(extras['SHAPE_AREA'])
+            crop_length = np.array(extras['SHAPE_LEN'])
+            self.extra_features = np.array([crop_area, crop_length]).T
+        else:
+            self.extra_features = None
+    
     def __len__(self):
         return len(self.labels) 
 
@@ -34,10 +44,12 @@ class EarthObservationDataset(Dataset):
         label = self.labels[idx]
         mask = self.mask[idx]
         fid = self.fid[idx]
-
-        X[:,:,~mask] = self.args.fill_value
-
-        return X, label, mask, fid
+        #X[:,:,~mask] = self.args.fill_value
+        if self.extra_features is not None:
+            extra_f = self.extra_features[idx]
+            return X, label, mask, fid, extra_f
+        else:
+            return X, label, mask, fid
 
 class Sentinel2Dataset(EarthObservationDataset):
     '''
@@ -120,3 +132,4 @@ class PlanetDataset(EarthObservationDataset):
         red = X[:, 2]
 
         return (nir - red) / (nir + red)
+

@@ -98,8 +98,15 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
     with tqdm(enumerate(dataloader), total=len(dataloader),position=0, leave=True) as iterator:
         for idx, batch in iterator:
             optimizer.zero_grad()
-            x, y_true, _, _ = batch
-            logprobs = model(x.to(device))
+            
+            if args.use_pselatae and args.include_extras:
+                x, y_true, mask, _, extra_features = batch
+                logprobs = model(((x.to(device), mask.to(device)), extra_features.to(device)))
+            else:
+                x, y_true, mask, _ = batch
+                if args.use_pselatae: logprobs = model((x.to(device), mask.to(device)))
+                else: logprobs = model(x.to(device))
+                
             y_true = y_true.to(device)
 
             eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
@@ -133,8 +140,13 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
         field_ids_list = list()
         with tqdm(enumerate(dataloader), total=len(dataloader), position=0, leave=True) as iterator:
             for idx, batch in iterator:
-                x, y_true, _, field_id = batch
-                logprobs = model(x.to(device))
+                if args.use_pselatae and args.include_extras:
+                    x, y_true, mask, field_id, extra_features = batch
+                    logprobs = model(((x.to(device), mask.to(device)), extra_features.to(device)))
+                else:
+                    x, y_true, mask, field_id = batch
+                    if args.use_pselatae: logprobs = model((x.to(device), mask.to(device)))
+                    else: logprobs = model(x.to(device))
                 y_true = y_true.to(device)
                 eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
                 eval_metrics.append(eval_metric)
@@ -186,8 +198,17 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
         with torch.no_grad():
             with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
                 for idx, batch in iterator:
-                    X, _, _, fid = batch
-                    logits = model(X.to(device))
+                    
+                    if args.use_pselatae and args.include_extras:
+                        x, _, mask, fid, extra_features = batch
+                        logits = model(((x.to(device), mask.to(device)), extra_features.to(device)))
+                    else:
+                        x, _, mask, fid = batch
+                        if args.use_pselatae: logits = model((x.to(device), mask.to(device)))
+                        else: logits = model(x.to(device))
+                    
+                    #X, _, _, fid = batch
+                    #logits = model(X.to(device))
                     predicted_probabilities = softmax(logits).cpu().detach().numpy()[0]
                     predicted_class = np.argmax(predicted_probabilities)
                     output_list.append({'fid': fid.cpu().detach().numpy()[0],
