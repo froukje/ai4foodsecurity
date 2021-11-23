@@ -41,9 +41,9 @@ def main(args):
     # if training, split dataset in train and valid
     if args.split=='train':
         # lengths of train and valid datasets
-        train_length = int(len(test_dataset) * 0.8)
-        valid_length = len(test_dataset) - train_length
-        lengths = [train_length, valid_length]
+        #train_length = int(len(test_dataset) * 0.8)
+        #valid_length = len(test_dataset) - train_length
+        #lengths = [train_length, valid_length]
         #train_dataset, valid_dataset = torch.utils.data.random_split(test_dataset, 
         #                                        lengths=lengths, 
         #                                        generator=torch.Generator().manual_seed(42))
@@ -128,16 +128,18 @@ def main(args):
 
             # calculate metrics
             scores = metrics(y_true.cpu(), y_pred.cpu())
-            scores_msg = ", ".join([f"{k}={v:.2f}" for (k, v) in scores.items()])
+            #scores_msg = ", ".join([f"{k}={v:.2f}" for (k, v) in scores.items()])
             scores["epoch"] = epoch
             scores["train_loss"] = train_loss
             scores["valid_loss"] = valid_loss
             log_scores.append(scores)
+            print(f'Validation scores:')
+            for key, value in scores.items():
+                print(f'{key:20s}: {value}')
             print(f'Validation took {(time.time() - start_time) / 60:.2f} minutes, \
                     valid_loss: {valid_loss:.4f}, eval_metric {valid_metric:.4}')
             # nni
             if args.nni:
-                #nni.report_intermediate_result(valid_metric)
                 nni.report_intermediate_result(valid_loss)
         
             # early stopping
@@ -162,7 +164,6 @@ def main(args):
 
         # nni
         if args.nni:
-            #nni.report_final_result(best_metric)
             nni.report_final_result(best_loss)
 
         # save best model
@@ -179,7 +180,8 @@ def main(args):
             for vl in all_valid_losses:
                 f.write(f'{vl:.4f}\n')
        
-            print(f"\nINFO: Epoch {epoch}: train_loss {train_loss:.2f}, valid_loss {valid_loss:.2f} " + scores_msg) 
+            print(f"\nINFO: Saved training and validation history ") 
+            print(f"\nINFO: Epoch {epoch}: train_loss {train_loss:.2f}, valid_loss {valid_loss:.2f} ") 
 
     # make predictions   
     if args.save_preds:
@@ -269,6 +271,7 @@ if __name__ == '__main__':
     parser.add_argument('--split', type=str, default='test', choices=['train', 'test']) 
     parser.add_argument('--nni', action='store_true', default=False)
     parser.add_argument('--save-preds', action='store_true', default=True) 
+    parser.add_argument('--save-ref', action='store_true', default=False) 
     parser.add_argument('--max-epochs', type=int, default=100)
     parser.add_argument('--patience', type=int, default=10)
     parser.add_argument('--checkpoint-epoch', type=int, default=20)

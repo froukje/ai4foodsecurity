@@ -29,6 +29,8 @@ def metrics(y_true, y_pred):
     precision_micro = sklearn.metrics.precision_score(y_true, y_pred, average="micro", zero_division=0)
     precision_macro = sklearn.metrics.precision_score(y_true, y_pred, average="macro", zero_division=0)
     precision_weighted = sklearn.metrics.precision_score(y_true, y_pred, average="weighted")
+    cm = sklearn.metrics.confusion_matrix(y_true, y_pred)
+    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] # normalise confusion matrix to get accurac for each class
 
     return dict(
         accuracy=accuracy,
@@ -42,7 +44,9 @@ def metrics(y_true, y_pred):
         precision_micro=precision_micro,
         precision_macro=precision_macro,
         precision_weighted=precision_weighted,
+        accuracy_per_class=cm.diagonal()
     )
+
 
 def bin_cross_entr_each_crop(logprobs, y_true, classes, device, args):
     '''
