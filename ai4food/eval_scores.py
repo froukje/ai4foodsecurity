@@ -1,3 +1,9 @@
+###
+# This script calculates the evaluation score used in the starter notebook for the validation set
+# This script does not run in the singularity container!
+###
+
+
 import os
 import argparse
 import pandas as pd

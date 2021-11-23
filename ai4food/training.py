@@ -34,16 +34,21 @@ def main(args):
    
     # construct the dataset
     test_dataset = PlanetDataset(args)
-    
     # if training, split dataset in train and valid
     if args.split=='train':
         # lengths of train and valid datasets
         train_length = int(len(test_dataset) * 0.8)
         valid_length = len(test_dataset) - train_length
         lengths = [train_length, valid_length]
-        train_dataset, valid_dataset = torch.utils.data.random_split(test_dataset, 
-                                                lengths=lengths, 
-                                                generator=torch.Generator().manual_seed(42))
+        #train_dataset, valid_dataset = torch.utils.data.random_split(test_dataset, 
+        #                                        lengths=lengths, 
+        #                                        generator=torch.Generator().manual_seed(42))
+
+        split = 1715
+        indices = list(range(len(test_dataset)))
+        train_idx, valid_idx = indices[split:], indices[:split]
+        train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_idx)
+        valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(valid_idx)
 
     label_ids = [1, 2, 3, 4, 5]
     label_names = ['Wheat', 'Barley', 'Canola', 'Lucerne/Medics', 'Small grain grazing']
@@ -53,10 +58,14 @@ def main(args):
 
     # Initialize data loaders
     if args.split == 'train':
-        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=8, shuffle=True, drop_last=True)
-        valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=8,drop_last=True)
+        #train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=8, shuffle=True, drop_last=True)
+        #valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=8,drop_last=True)
+        train_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, sampler=train_sampler,
+                        num_workers=args.num_workers)
+        valid_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, sampler=valid_sampler,
+                        num_workers=args.num_workers)
     else:
-        test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=8)
+        test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
 
     # set device to GPU, if available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -169,7 +178,10 @@ def main(args):
     # make predictions   
     if args.save_preds:
         if args.split == 'train':
-            test_loader = DataLoader(valid_dataset, batch_size=1, num_workers=8)
+            #test_loader = DataLoader(valid_dataset, batch_size=1, num_workers=8)
+        
+            test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
+                    sampler=valid_sampler, num_workers=args.num_workers)
         else:
             test_loader = DataLoader(test_dataset, batch_size=1, num_workers=8)
             save_model_path = os.path.join(args.target_dir, 'best_model.pt')
@@ -180,7 +192,8 @@ def main(args):
     # save reference
     if args.save_ref:
         if args.split == 'train':
-            test_loader = DataLoader(valid_dataset, batch_size=1, num_workers=8)
+            test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
+                    sampler=valid_sampler, num_workers=args.num_workers)
         
         print(f'\nINFO: saving reference from the {args.save_preds} set')
         save_reference(test_loader, device, label_ids, label_names, args)
@@ -216,6 +229,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', type=int, default=8)
     parser.add_argument('--input-dim', type=int, default=4)
     parser.add_argument('--sequence-length', type=int, default=74)
+    parser.add_argument('--num-workers', type=int, default=8)
     #parser.add_argument('--ndvi', action='store_true', default=False)
     parser.add_argument('--ndvi', type=int, default=0, choices=[0, 1])
     parser.add_argument('--temporal-backbone', type=str, default='lstm', 
