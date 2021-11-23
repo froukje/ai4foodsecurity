@@ -13,16 +13,15 @@ import tensorflow as tf
 
 def main(args):
     reference_file = os.path.join(args.ref_path, 'reference_val.json')
+    #reference_file = os.path.join(args.ref_path, 'submission_val.json')
     submission_file = os.path.join(args.pred_path, 'validation.json')
+    #submission_file = os.path.join(args.pred_path, 'submission.json')
 
     # Opening JSON file
     with open(reference_file) as json_file:
         reference_json = json.load(json_file)
     with open(submission_file) as json_file:
         submission_json = json.load(json_file)
-
-    #submission_json = json.loads(submission_file)
-    print(reference_json)
 
     submission = pd.DataFrame.from_dict(submission_json)
     reference = pd.DataFrame.from_dict(reference_json)

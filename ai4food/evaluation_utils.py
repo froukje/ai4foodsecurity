@@ -116,7 +116,7 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
             #eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
             #eval_metrics.append(eval_metric)
             loss = criterion(logprobs, y_true)
-            eval_metrics = loss
+            eval_metrics.append(loss)
             loss.backward()
             optimizer.step()
             iterator.set_description(f"train loss={loss:.2f}")
@@ -156,7 +156,7 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
                 #eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
                 #eval_metrics.append(eval_metric)
                 loss = criterion(logprobs, y_true.to(device))
-                eval_metrics = loss
+                eval_metrics.append(loss)
                 iterator.set_description(f"valid loss={loss:.2f}")
                 losses.append(loss)
                 y_true_list.append(y_true)
@@ -185,7 +185,11 @@ def save_reference(data_loader, device, label_ids, label_names, args):
         output_frame = pd.DataFrame.from_dict(output_list)
         output_frame.to_json(output_name)
     else:
-        print(f'No reference was saved')
+        output_name = os.path.join(args.target_dir, 'submission_val.json')
+        print(f'Reference for submission was saved to location: {(output_name)}')
+        output_frame = pd.DataFrame.from_dict(output_list)
+        output_frame.to_json(output_name)
+        #print(f'No reference was saved')
 
 
 def save_predictions(save_model_path, model, data_loader, device, label_ids, label_names, args):
