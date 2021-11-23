@@ -261,12 +261,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dev-data-dir', type=str, 
                         default='../../../shared_data/2021-ai4food/dev_data/south-africa/planet/extracted')
-    parser.add_argument('--planet-dev-data-dir', type=str, 
-                        default='../../../shared_data/2021-ai4food/dev_data/south-africa/planet/extracted')
-    parser.add_argument('--sent2-dev-data-dir', type=str, 
-                        default='../../../shared_data/2021-ai4food/dev_data/south-africa/sentinel-2/default')
     parser.add_argument('--include-extras', type=int, default=0, choices=[0, 1])
-    parser.add_argument('--datasets', type=str, default='planet', nargs='+', choices=['planet','labels','sent2'])
     parser.add_argument('--target-dir', type=str, default='./pseltae')
     parser.add_argument('--split', type=str, default='test', choices=['train', 'test']) 
     parser.add_argument('--nni', action='store_true', default=False)
