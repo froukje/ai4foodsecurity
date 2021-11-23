@@ -113,9 +113,10 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
                 
             y_true = y_true.to(device)
 
-            eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
-            eval_metrics.append(eval_metric)
+            #eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
+            #eval_metrics.append(eval_metric)
             loss = criterion(logprobs, y_true)
+            eval_metrics = loss
             loss.backward()
             optimizer.step()
             iterator.set_description(f"train loss={loss:.2f}")
@@ -152,9 +153,10 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
                     if args.use_pselatae: logprobs = model((x.to(device), mask.to(device)))
                     else: logprobs = model(x.to(device))
                 y_true = y_true.to(device)
-                eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
-                eval_metrics.append(eval_metric)
+                #eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
+                #eval_metrics.append(eval_metric)
                 loss = criterion(logprobs, y_true.to(device))
+                eval_metrics = loss
                 iterator.set_description(f"valid loss={loss:.2f}")
                 losses.append(loss)
                 y_true_list.append(y_true)

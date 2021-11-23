@@ -15,7 +15,7 @@ sys.path.append('../notebooks/starter_files/')
 from utils.data_transform import PlanetTransform
 from baseline_models import SpatiotemporalModel
 
-path_to_pseltae = "../lightweight-temporal-attention-pytorch/"
+path_to_pseltae = "models"
 sys.path.append(path_to_pseltae)
 from models.stclassifier import PseLTae, PseTae
 
