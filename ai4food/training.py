@@ -9,13 +9,13 @@ import argparse
 import os
 import sys
 import h5py
-from evaluation_utils import metrics, train_epoch, validation_epoch, save_predictions
+from evaluation_utils import metrics, train_epoch, validation_epoch, save_predictions, save_reference
 
 sys.path.append('../notebooks/starter_files/')
 from utils.data_transform import PlanetTransform
 from baseline_models import SpatiotemporalModel
 
-path_to_pseltae = "../lightweight-temporal-attention-pytorch/"
+path_to_pseltae = "models"
 sys.path.append(path_to_pseltae)
 from models.stclassifier import PseLTae, PseTae
 
@@ -37,16 +37,11 @@ import time
 def main(args):
    
     # construct the dataset
-    datasets = []
-    if 'planet' in args.datasets:
-        test_dataset_planet = PlanetDataset('planet', args)
-        datasets.append(test_dataset_planet)
-    if 'sent2' in args.datasets:
-        test_dataset_sent2 = Sentinel2Dataset('sent2', args)
-        datasets.append(test_dataset_sent2)
-    # Only working for 1 Dataset!
-    test_dataset = torch.utils.data.ConcatDataset(datasets)
-    
+    test_dataset = PlanetDataset(args)
+    print('Labels in train and valid / (test)')
+    (unique, counts) = np.unique(test_dataset[:][1], return_counts=True)
+    frequencies = np.asarray((unique, counts)).T
+    print(frequencies)
     # if training, split dataset in train and valid
     if args.split=='train':
         # lengths of train and valid datasets
@@ -56,6 +51,20 @@ def main(args):
         train_dataset, valid_dataset = torch.utils.data.random_split(test_dataset, 
                                                 lengths=lengths, 
                                                 generator=torch.Generator().manual_seed(42))
+        print('Labels in train')
+        (unique, counts) = np.unique(train_dataset[:][1], return_counts=True)
+        frequencies = np.asarray((unique, counts)).T
+        print(frequencies)
+        print('Labels in valid')
+        (unique, counts) = np.unique(valid_dataset[:][1], return_counts=True)
+        frequencies = np.asarray((unique, counts)).T
+        print(frequencies)
+
+        #split = 1715
+        #indices = list(range(len(test_dataset)))
+        #train_idx, valid_idx = indices[split:], indices[:split]
+        #train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_idx)
+        #valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(valid_idx)
 
     label_ids = [1, 2, 3, 4, 5]
     label_names = ['Wheat', 'Barley', 'Canola', 'Lucerne/Medics', 'Small grain grazing']
@@ -67,8 +76,12 @@ def main(args):
     if args.split == 'train':
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=8, shuffle=True, drop_last=True)
         valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=8,drop_last=True)
+        #train_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, sampler=train_sampler,
+        #                num_workers=args.num_workers)
+        #valid_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, sampler=valid_sampler,
+        #                num_workers=args.num_workers)
     else:
-        test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=8)
+        test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
 
     # set device to GPU, if available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -87,6 +100,7 @@ def main(args):
     # Initialize model optimizer and loss criterion:
     optimizer = Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
     criterion = CrossEntropyLoss(reduction="mean")
+    #criterion = nn.NLLLoss(reduction='sum')
 
     # training
     best_loss = np.inf
@@ -126,16 +140,19 @@ def main(args):
 
             # calculate metrics
             scores = metrics(y_true.cpu(), y_pred.cpu())
-            scores_msg = ", ".join([f"{k}={v:.2f}" for (k, v) in scores.items()])
+            #scores_msg = ", ".join([f"{k}={v:.2f}" for (k, v) in scores.items()])
             scores["epoch"] = epoch
             scores["train_loss"] = train_loss
             scores["valid_loss"] = valid_loss
             log_scores.append(scores)
+            print(f'Validation scores:')
+            for key, value in scores.items():
+                print(f'{key:20s}: {value}')
             print(f'Validation took {(time.time() - start_time) / 60:.2f} minutes, \
                     valid_loss: {valid_loss:.4f}, eval_metric {valid_metric:.4}')
             # nni
             if args.nni:
-                nni.report_intermediate_result(valid_metric)
+                nni.report_intermediate_result(valid_loss)
         
             # early stopping
             if valid_loss < best_loss:
@@ -159,7 +176,7 @@ def main(args):
 
         # nni
         if args.nni:
-            nni.report_final_result(best_metric)
+            nni.report_final_result(best_loss)
 
         # save best model
         save_model_path = os.path.join(args.target_dir, 'best_model.pt')
@@ -175,18 +192,34 @@ def main(args):
             for vl in all_valid_losses:
                 f.write(f'{vl:.4f}\n')
        
-            print(f"\nINFO: Epoch {epoch}: train_loss {train_loss:.2f}, valid_loss {valid_loss:.2f} " + scores_msg) 
+            print(f"\nINFO: Saved training and validation history ") 
+            print(f"\nINFO: Epoch {epoch}: train_loss {train_loss:.2f}, valid_loss {valid_loss:.2f} ") 
 
     # make predictions   
     if args.save_preds:
         if args.split == 'train':
             test_loader = DataLoader(valid_dataset, batch_size=1, num_workers=8)
+        
+            #test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
+            #        sampler=valid_sampler, num_workers=args.num_workers)
         else:
             test_loader = DataLoader(test_dataset, batch_size=1, num_workers=8)
             save_model_path = os.path.join(args.target_dir, 'best_model.pt')
-        
+
         print(f'\nINFO: saving predictions from the {args.save_preds} set')
         save_predictions(save_model_path, model, test_loader, device, label_ids, label_names, args)
+
+    # save reference
+    if args.save_ref:
+        if args.split == 'train':
+            test_loader = DataLoader(valid_dataset, batch_size=1, num_workers=8)
+            #test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
+            #        sampler=valid_sampler, num_workers=args.num_workers)
+        else:
+            test_loader = DataLoader(test_dataset, batch_size=1, num_workers=8)
+
+        print(f'\nINFO: saving reference from the {args.save_preds} set')
+        save_reference(test_loader, device, label_ids, label_names, args)
 
 
 def add_nni_params(args):
@@ -203,9 +236,9 @@ def add_nni_params(args):
     args_dict['target_dir'] = nni_path
     return args
 
-def get_paselatae_model_config(input_dim, include_extras=0, verbose=False):
+def get_paselatae_model_config(args, verbose=False):
     # adding PseLTae model configs
-    include_extras = include_extras
+    include_extras = args.include_extras
     if include_extras: extra_size = 2
     else: extra_size = 0
     mlp2_first_layer = 128 + extra_size
@@ -213,19 +246,19 @@ def get_paselatae_model_config(input_dim, include_extras=0, verbose=False):
             'mlp1': [4,32,64],    # Number of neurons in the layers of MLP1
             'pooling': 'mean_std',   # Pixel-embeddings pooling strategy
             'mlp2': [mlp2_first_layer,mlp2_first_layer],     # Number of neurons in the layers of MLP2
-            'n_head': 16,             # Number of attention heads
-            'd_k': 8,                # Dimension of the key and query vectors
+            'n_head': args.n_head,   # Number of attention heads
+            'd_k': args.d_k,                # Dimension of the key and query vectors
             'mlp3': [256,128],     # Number of neurons in the layers of MLP3
-            'dropout': 0.2,          # Dropout probability
+            'dropout': args.dropout,          # Dropout probability
             'T':1000,                # Maximum period for the positional encoding
             'lms':244,                # Maximum sequence length for positional encoding (only necessary if positions == order) !!! change to 48 for planet-5
             'positions': 'bespoke',     # Positions to use for the positional encoding (bespoke / order)
-            'mlp4': [128, 64, 32, 20], # tNumber of neurons in the layers of MLP4
+            'mlp4': [128, 64, 32, 20], # Number of neurons in the layers of MLP4
             'd_model': 256,              # size of the embeddings (E), if input vectors are of a different size, a linear layer is used to project them to a d_model-dimensional space
             'geomfeat': include_extras,   # If 1 the precomputed geometrical features (f) are used in the PSE
             }
 
-    model_config = dict(input_dim=input_dim, mlp1=config['mlp1'], pooling=config['pooling'],
+    model_config = dict(input_dim=args.input_dim, mlp1=config['mlp1'], pooling=config['pooling'],
                         mlp2=config['mlp2'], n_head=config['n_head'], d_k=config['d_k'], mlp3=config['mlp3'],
                         dropout=config['dropout'], T=config['T'], len_max_seq=config['lms'],
                         positions=None, #dt.date_positions if config['positions'] == 'bespoke' else None,
@@ -243,22 +276,18 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dev-data-dir', type=str, 
                         default='../../../shared_data/2021-ai4food/dev_data/south-africa/planet/extracted')
-    parser.add_argument('--planet-dev-data-dir', type=str, 
-                        default='../../../shared_data/2021-ai4food/dev_data/south-africa/planet/extracted')
-    parser.add_argument('--sent2-dev-data-dir', type=str, 
-                        default='../../../shared_data/2021-ai4food/dev_data/south-africa/sentinel-2/default')
-    parser.add_argument('--include-extras', type=int, default=0, choices=[0, 1])
-    parser.add_argument('--datasets', type=str, default='planet', nargs='+', choices=['planet','labels','sent2'])
-    parser.add_argument('--target-dir', type=str, default='./pseltae')
+    parser.add_argument('--target-dir', type=str, default='.')
     parser.add_argument('--split', type=str, default='test', choices=['train', 'test']) 
     parser.add_argument('--nni', action='store_true', default=False)
     parser.add_argument('--save-preds', action='store_true', default=True) 
+    parser.add_argument('--save-ref', action='store_true', default=False) 
     parser.add_argument('--max-epochs', type=int, default=100)
     parser.add_argument('--patience', type=int, default=10)
     parser.add_argument('--checkpoint-epoch', type=int, default=20)
     parser.add_argument('--batch-size', type=int, default=8)
     parser.add_argument('--input-dim', type=int, default=4)
     parser.add_argument('--sequence-length', type=int, default=74)
+    parser.add_argument('--num-workers', type=int, default=8)
     #parser.add_argument('--ndvi', action='store_true', default=False)
     parser.add_argument('--ndvi', type=int, default=0, choices=[0, 1])
     parser.add_argument('--use-pselatae', type=int, default=1, choices=[0,1])
@@ -270,6 +299,11 @@ if __name__ == '__main__':
                                 "mobilenet_v3_small", 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16',
                                 'vgg16_bn', 'vgg19_bn', 'vgg19', "alexnet", 'squeezenet1_0'])
     parser.add_argument('--fill-value', type=bool, default=0)
+    # for psalatae model
+    parser.add_argument('--include-extras', type=int, default=0, choices=[0, 1])
+    parser.add_argument('--n-head', type=int, default=16)
+    parser.add_argument('--d-k', type=int, default=8)
+    parser.add_argument('--dropout', type=float, default=0.2)
     args = parser.parse_args()
 
     if args.nni:
@@ -281,8 +315,9 @@ if __name__ == '__main__':
     print('end args keys / value\n')
     
     if args.use_pselatae:
-        model_config = get_paselatae_model_config(args.input_dim, args.include_extras, verbose=True)
+        model_config = get_paselatae_model_config(args, verbose=True)
         args.model_config = model_config
         
     main(args)
+
 
