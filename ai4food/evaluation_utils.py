@@ -29,6 +29,8 @@ def metrics(y_true, y_pred):
     precision_micro = sklearn.metrics.precision_score(y_true, y_pred, average="micro", zero_division=0)
     precision_macro = sklearn.metrics.precision_score(y_true, y_pred, average="macro", zero_division=0)
     precision_weighted = sklearn.metrics.precision_score(y_true, y_pred, average="weighted")
+    cm = sklearn.metrics.confusion_matrix(y_true, y_pred)
+    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] # normalise confusion matrix to get accurac for each class
 
     return dict(
         accuracy=accuracy,
@@ -42,7 +44,9 @@ def metrics(y_true, y_pred):
         precision_micro=precision_micro,
         precision_macro=precision_macro,
         precision_weighted=precision_weighted,
+        accuracy_per_class=cm.diagonal()
     )
+
 
 def bin_cross_entr_each_crop(logprobs, y_true, classes, device, args):
     '''
@@ -109,9 +113,10 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
                 
             y_true = y_true.to(device)
 
-            eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
-            eval_metrics.append(eval_metric)
+            #eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
+            #eval_metrics.append(eval_metric)
             loss = criterion(logprobs, y_true)
+            eval_metrics.append(loss)
             loss.backward()
             optimizer.step()
             iterator.set_description(f"train loss={loss:.2f}")
@@ -148,9 +153,10 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
                     if args.use_pselatae: logprobs = model((x.to(device), mask.to(device)))
                     else: logprobs = model(x.to(device))
                 y_true = y_true.to(device)
-                eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
-                eval_metrics.append(eval_metric)
+                #eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
+                #eval_metrics.append(eval_metric)
                 loss = criterion(logprobs, y_true.to(device))
+                eval_metrics.append(loss)
                 iterator.set_description(f"valid loss={loss:.2f}")
                 losses.append(loss)
                 y_true_list.append(y_true)
@@ -179,7 +185,11 @@ def save_reference(data_loader, device, label_ids, label_names, args):
         output_frame = pd.DataFrame.from_dict(output_list)
         output_frame.to_json(output_name)
     else:
-        print(f'No reference was saved')
+        output_name = os.path.join(args.target_dir, 'submission_val.json')
+        print(f'Reference for submission was saved to location: {(output_name)}')
+        output_frame = pd.DataFrame.from_dict(output_list)
+        output_frame.to_json(output_name)
+        #print(f'No reference was saved')
 
 
 def save_predictions(save_model_path, model, data_loader, device, label_ids, label_names, args):
