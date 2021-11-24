@@ -9,7 +9,7 @@ import argparse
 import os
 import sys
 import h5py
-from evaluation_utils import metrics, train_epoch, validation_epoch, save_predictions
+from evaluation_utils import metrics, train_epoch, validation_epoch, save_predictions, save_reference
 
 sys.path.append('../notebooks/starter_files/')
 from utils.data_transform import PlanetTransform
@@ -37,15 +37,7 @@ import time
 def main(args):
    
     # construct the dataset
-    datasets = []
-    if 'planet' in args.datasets:
-        test_dataset_planet = PlanetDataset('planet', args)
-        datasets.append(test_dataset_planet)
-    if 'sent2' in args.datasets:
-        test_dataset_sent2 = Sentinel2Dataset('sent2', args)
-        datasets.append(test_dataset_sent2)
-    # Only working for 1 Dataset!
-    test_dataset = torch.utils.data.ConcatDataset(datasets)
+    test_dataset = PlanetDataset(args)
     
     # if training, split dataset in train and valid
     if args.split=='train':
@@ -86,7 +78,8 @@ def main(args):
 
     # Initialize model optimizer and loss criterion:
     optimizer = Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
-    criterion = CrossEntropyLoss(reduction="mean")
+    #criterion = CrossEntropyLoss(reduction="mean")
+    criterion = nn.NLLLoss(reduction='sum')
 
     # training
     best_loss = np.inf
@@ -135,7 +128,8 @@ def main(args):
                     valid_loss: {valid_loss:.4f}, eval_metric {valid_metric:.4}')
             # nni
             if args.nni:
-                nni.report_intermediate_result(valid_metric)
+                #nni.report_intermediate_result(valid_metric)
+                nni.report_intermediate_result(valid_loss)
         
             # early stopping
             if valid_loss < best_loss:
@@ -159,7 +153,8 @@ def main(args):
 
         # nni
         if args.nni:
-            nni.report_final_result(best_metric)
+            #nni.report_final_result(best_metric)
+            nni.report_final_result(best_loss)
 
         # save best model
         save_model_path = os.path.join(args.target_dir, 'best_model.pt')
@@ -187,6 +182,14 @@ def main(args):
         
         print(f'\nINFO: saving predictions from the {args.save_preds} set')
         save_predictions(save_model_path, model, test_loader, device, label_ids, label_names, args)
+
+    # save reference
+    if args.save_ref:
+        if args.split == 'train':
+            test_loader = DataLoader(valid_dataset, batch_size=1, num_workers=8)
+        
+        print(f'\nINFO: saving reference from the {args.save_preds} set')
+        save_reference(test_loader, device, label_ids, label_names, args)
 
 
 def add_nni_params(args):
