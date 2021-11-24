@@ -29,6 +29,7 @@ class EarthObservationDataset(Dataset):
         
         if args.include_extras:
             labels_path='/work/ka1176/shared_data/2021-ai4food/labels_combined.geojson' # when moved to data dir change to os.path.join(data_dir,'labels_combined.geojson')
+
             extras=gpd.read_file(labels_path)
             crop_area = np.array(extras['SHAPE_AREA'])
             crop_length = np.array(extras['SHAPE_LEN'])

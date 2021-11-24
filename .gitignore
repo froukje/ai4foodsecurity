@@ -1,6 +1,8 @@
 *.sif # singularity image
 kernels/*
 .ipynb_checkpoints/*
+ai4food/.ipynb_checkpoints/
+ai4food/dataloaders/.ipynb_checkpoints/
 notebooks/data_exploration/.ipynb_checkpoints/*
 ai4food/.ipynb_checkpoints/
 ai4food/dataloaders/.ipynb_checkpoints/
