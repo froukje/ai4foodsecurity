@@ -152,7 +152,7 @@ def main(args):
                     valid_loss: {valid_loss:.4f}, eval_metric {valid_metric:.4}')
             # nni
             if args.nni:
-                nni.report_intermediate_result(valid_loss)
+                nni.report_intermediate_result(valid_metric)
         
             # early stopping
             if valid_loss < best_loss:
@@ -176,7 +176,7 @@ def main(args):
 
         # nni
         if args.nni:
-            nni.report_final_result(best_loss)
+            nni.report_final_result(best_metric)
 
         # save best model
         save_model_path = os.path.join(args.target_dir, 'best_model.pt')
