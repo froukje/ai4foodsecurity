@@ -29,7 +29,7 @@ def main(args):
     print(submission.head())
     
     score = calculate_score(reference, submission)
-    print(score)
+    print('SCORE:', score)
 
 def calculate_score(reference, submission):
     """

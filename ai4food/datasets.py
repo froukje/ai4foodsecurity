@@ -20,8 +20,13 @@ class EarthObservationDataset(Dataset):
     def __init__(self, args):
         super().__init__()
         self.args = args
-        self.h5_file = h5py.File(os.path.join(self.args.dev_data_dir, f'{args.split}_data.h5'), 'r')
-        
+
+        ### for now only
+        if args.input_data[0]=='sentinel-1':
+            self.h5_file = h5py.File(f'{args.split}_data.h5', 'r')
+        else:
+            self.h5_file = h5py.File(os.path.join(args.dev_data_dir, args.input_data[0], args.input_data_type, f'{args.split}_data.h5'), 'r')
+
         self.X = self.h5_file['image_stack'][:].astype(np.float32)
         self.mask = self.h5_file['mask'][:].astype(bool)
         self.fid = self.h5_file['fid'][:]
@@ -86,21 +91,26 @@ class Sentinel2Dataset(EarthObservationDataset):
 
         return (nir - red) / (nir + red)
 
-#class Sentinel1Dataset(EarthObservationDataset):
-#    '''
-#    Sentinel 1 Dataset
-#    '''
-#    super().__init__()
-
-#    def __init__(self, ...):
-#        pass
-
-#    def __len__(self):
-#        return len(self.labels) 
-
-#    def __getitem__(self, idx):
-#        pass
-
+class Sentinel1Dataset(EarthObservationDataset):
+    '''
+    Sentinel 1 Dataset
+    '''
+    def __init__(self, args):
+        super().__init__(args)
+        if args.nri:
+            nri = Sentinel1Dataset._calc_rvi(self.X)
+            nri = np.expand_dims(nri, axis=2) # changed axis from 1 to 2
+            self.X = np.concatenate([self.X, nri], axis=2) # changed axis from 1 to 2  
+            
+    @staticmethod
+    def _calc_rvi(X):
+        VV = X[:,:,0,:]
+        VH = X[:,:,1,:]
+        dop = (VV/(VV+VH))
+        m = 1 - dop
+        radar_vegetation_index = (np.sqrt(dop))*((4*(VH))/(VV+VH))
+        print('lalalla', radar_vegetation_index.shape)
+        return radar_vegetation_index
 
 
 class PlanetDataset(EarthObservationDataset):
@@ -115,9 +125,8 @@ class PlanetDataset(EarthObservationDataset):
         super().__init__(args)
         if args.ndvi:
             ndvi = PlanetDataset._calc_ndvi(self.X)
-            ndvi = np.expand_dims(ndvi, axis=1)
-            self.X = np.concatenate([self.X, ndvi], axis=1)
-
+            ndvi = np.expand_dims(ndvi, axis=2) # changed axis from 1 to 2
+            self.X = np.concatenate([self.X, ndvi], axis=2) # changed axis from 1 to 2
 
     @staticmethod
     def _calc_ndvi(X):
@@ -127,9 +136,30 @@ class PlanetDataset(EarthObservationDataset):
         NDVI = (NIR - RED) / (NIR + RED)
 
         '''
-
-        nir = X[:, 3]
-        red = X[:, 2]
-
+        #print(X.shape) #(4143, 244, 4, 64)
+        nir = X[:, :, 3, :] # X[:, 3]
+        red = X[:, :, 2, :] # X[:, 2]
         return (nir - red) / (nir + red)
 
+
+    
+class CombinedDataset(Dataset):
+    def __init__(self, args): 
+        super().__init__()
+        self.datasets =[]
+        self.input_data = args.input_data.copy()
+        for input_data in self.input_data:
+            if input_data=='planet':
+                args.input_data = ['planet']
+                planet_dataset = PlanetDataset(args)
+                self.datasets.append(planet_dataset)
+            elif input_data=='sentinel-1':
+                args.input_data = ['sentinel-1']
+                sentinel1_dataset = Sentinel1Dataset(args)
+                self.datasets.append(sentinel1_dataset)
+            elif input_data=='sentinel-2':
+                args.input_data = ['sentinel-2']
+                sentinel2_dataset = Sentinel2Dataset(args)
+                self.datasets.append(sentinel2_dataset)
+    def __getitem__(self, idx):
+        return tuple(d[idx] for d in self.datasets)
