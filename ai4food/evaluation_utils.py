@@ -98,6 +98,18 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
             if args.use_pselatae and args.include_extras:
                 x, y_true, mask, _, extra_features = batch
                 logprobs = model(((x.to(device), mask.to(device)), extra_features.to(device)))
+            # for combined model - current implementation w/o extra features
+            elif len(args.input_dim)>1:
+                sample_planet, sample_s1 = batch
+                for i in range(len(sample_planet)):
+                    sample_planet[i] = sample_planet[i].to(device)
+                    sample_s1[i] = sample_s1[i].to(device)
+                
+                x_p, y_true, mask_p, _ = sample_planet
+                x_s1, _, mask_s1, _ = sample_s1
+                logprobs = model(((x_p, mask_p), (x_s1, mask_s1)))
+            
+            # for spatiotemporal models
             else:
                 x, y_true, mask, _ = batch
                 if args.use_pselatae: logprobs = model((x.to(device), mask.to(device)))
@@ -136,13 +148,26 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
         field_ids_list = list()
         with tqdm(enumerate(dataloader), total=len(dataloader), position=0, leave=True) as iterator:
             for idx, batch in iterator:
+               
                 if args.use_pselatae and args.include_extras:
                     x, y_true, mask, field_id, extra_features = batch
                     logprobs = model(((x.to(device), mask.to(device)), extra_features.to(device)))
+                # for combined model - current implementation wo extra features
+                elif len(args.input_dim)>1:
+                    sample_planet, sample_s1 = batch
+                    for i in range(len(sample_planet)):
+                        sample_planet[i] = sample_planet[i].to(device)
+                        sample_s1[i] = sample_s1[i].to(device)
+
+                    x_p, y_true, mask_p, field_id = sample_planet
+                    x_s1, _, mask_s1, _ = sample_s1
+                    logprobs = model(((x_p, mask_p), (x_s1, mask_s1)))
+                # for spatiotemporal models
                 else:
                     x, y_true, mask, field_id = batch
                     if args.use_pselatae: logprobs = model((x.to(device), mask.to(device)))
                     else: logprobs = model(x.to(device))
+                        
                 y_true = y_true.to(device)
                 eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
                 eval_metrics.append(eval_metric)
@@ -163,6 +188,7 @@ def save_reference(data_loader, device, label_ids, label_names, args):
     with torch.no_grad():
         with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
             for idx, batch in iterator:
+                if len(args.input_dim)>1: batch=batch[0]
                 _, y_true, _, fid = batch
                 for i in range(y_true.size()[0]):
                     fid_i = fid[i].view(1,-1)[0]
@@ -200,6 +226,16 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
                     if args.use_pselatae and args.include_extras:
                         x, _, mask, fid, extra_features = batch
                         logits = model(((x.to(device), mask.to(device)), extra_features.to(device)))
+                    # for combined model - current implementation wo extra features
+                    elif len(args.input_dim)>1:
+                        sample_planet, sample_s1 = batch
+                        for i in range(len(sample_planet)):
+                            sample_planet[i] = sample_planet[i].to(device)
+                            sample_s1[i] = sample_s1[i].to(device)
+                        x_p, _, mask_p, fid = sample_planet
+                        x_s1, _, mask_s1, _ = sample_s1
+                        logits = model(((x_p, mask_p), (x_s1, mask_s1)))
+                    # for spatiotemporal model
                     else:
                         x, _, mask, fid = batch
                         if args.use_pselatae: logits = model((x.to(device), mask.to(device)))
@@ -222,7 +258,20 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
             output_name = os.path.join(args.target_dir, 'submission.json')
             print(f'Submission was saved to location: {(output_name)}')
         output_frame = pd.DataFrame.from_dict(output_list)
-        print(output_frame.tail())
+        # temporary fix for class mismatch
+        if args.split == 'test':
+            # swap 1s and 4s
+            crop_ids = output_frame['crop_id']
+            crop_ids = np.array(crop_ids)
+            crop_ids[crop_ids==1] = 100
+            crop_ids[crop_ids==4] = 1
+            crop_ids[crop_ids==100] = 4
+            output_frame['crop_id'] = crop_ids.astype(np.uint8)
+            # swap Wheat and Lucerne/Medics
+            output_frame['crop_name']=output_frame['crop_name'].str.replace('Wheat', 'blabla')
+            output_frame['crop_name']=output_frame['crop_name'].str.replace('Lucerne/Medics', 'Wheat')
+            output_frame['crop_name']=output_frame['crop_name'].str.replace('blabla', 'Lucerne/Medics')
+            
         output_frame.to_json(output_name)
 
     else:
