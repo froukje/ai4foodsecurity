@@ -15,6 +15,7 @@ ai4food/reference_val.json
 ai4food/__pycache__/
 ai4food/epoch*
 ai4food/dataloaders/__pycache__/
+ai4food/models/models/__pycache__/*
 images/*
 nni/*
 jobs/*
