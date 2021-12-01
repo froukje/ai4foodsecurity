@@ -179,7 +179,7 @@ def main(args):
                     valid_loss: {valid_loss:.4f}, eval_metric {valid_metric:.4}')
             # nni
             if args.nni:
-                nni.report_intermediate_result(valid_loss)
+                nni.report_intermediate_result(valid_metric)
         
             # early stopping
             if valid_loss < best_loss:
@@ -204,7 +204,7 @@ def main(args):
 
         # nni
         if args.nni:
-            nni.report_final_result(best_loss)
+            nni.report_final_result(best_metric)
 
         # save best model
         save_model_path = os.path.join(args.target_dir, 'best_model.pt')
@@ -226,12 +226,12 @@ def main(args):
     # make predictions   
     if args.save_preds:
         if args.split == 'train':
-            test_loader = DataLoader(valid_dataset, batch_size=1, num_workers=8)
+            test_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
         
             #test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
             #        sampler=valid_sampler, num_workers=args.num_workers)
         else:
-            test_loader = DataLoader(test_dataset, batch_size=1, num_workers=8)
+            test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
             save_model_path = os.path.join(args.target_dir, 'best_model.pt')
 
         print(f'\nINFO: saving predictions from the {args.save_preds} set')
@@ -240,11 +240,11 @@ def main(args):
     # save reference
     if args.save_ref:
         if args.split == 'train':
-            test_loader = DataLoader(valid_dataset, batch_size=1, num_workers=8)
+            test_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
             #test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
             #        sampler=valid_sampler, num_workers=args.num_workers)
         else:
-            test_loader = DataLoader(test_dataset, batch_size=1, num_workers=8)
+            test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
 
         print(f'\nINFO: saving reference from the {args.save_preds} set')
         save_reference(test_loader, device, label_ids, label_names, args)

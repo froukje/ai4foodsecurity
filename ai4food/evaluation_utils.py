@@ -65,21 +65,13 @@ def bin_cross_entr_each_crop(logprobs, y_true, classes, device, args):
     y_prob_ids = torch.argmax(y_prob, dim=1)
     y_pred_onehot = nn.functional.one_hot(y_prob_ids, num_classes=5).float()
     y_true_onehot = nn.functional.one_hot(y_true, num_classes=5).float()
-    
     #y_prob_clipped = torch.clip(y_pred_onehot, 1e-7, 1-1e-7)
     y_prob_clipped = torch.clip(y_prob, 1e-7, 1-1e-7)
-    
+    bin_ce = torch.tensor(bin_ce)
     #loss_batch = -torch.log(y_prob_clipped[range(len(y_pred_onehot)), y_true])
     loss_batch = -torch.log(y_prob_clipped[range(len(y_prob)), y_true])
     bin_ce = torch.sum(loss_batch)
 
-    #y_true_onehot = y_true_onehot.cpu().numpy()
-    #y_pred_onehot = y_pred_onehot.detach().cpu().numpy()
-    #y_true_onehot = tf.convert_to_tensor(y_true_onehot)
-    #y_pred_onehot = tf.convert_to_tensor(y_pred_onehot)
-    #cross_entropy_func = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
-    #bin_ce = cross_entropy_func(y_true_onehot, y_pred_onehot).numpy()
-    #bin_ce = torch.tensor(bin_ce)
     return bin_ce
 
 
@@ -125,10 +117,9 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
                 
             y_true = y_true.to(device)
 
-            #eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
-            #eval_metrics.append(eval_metric)
+            eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
+            eval_metrics.append(eval_metric)
             loss = criterion(logprobs, y_true)
-            eval_metrics.append(loss)
             loss.backward()
             optimizer.step()
             iterator.set_description(f"train loss={loss:.2f}")
@@ -178,10 +169,9 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
                     else: logprobs = model(x.to(device))
                         
                 y_true = y_true.to(device)
-                #eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
-                #eval_metrics.append(eval_metric)
+                eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
+                eval_metrics.append(eval_metric)
                 loss = criterion(logprobs, y_true.to(device))
-                eval_metrics.append(loss)
                 iterator.set_description(f"valid loss={loss:.2f}")
                 losses.append(loss)
                 y_true_list.append(y_true)
@@ -200,22 +190,20 @@ def save_reference(data_loader, device, label_ids, label_names, args):
             for idx, batch in iterator:
                 if len(args.input_dim)>1: batch=batch[0]
                 _, y_true, _, fid = batch
-                output_list.append({'fid': fid.cpu().detach().numpy()[0],
-                                'crop_id': label_ids[y_true],
-                                'crop_name': label_names[y_true]})
+                for i in range(y_true.size()[0]):
+                    fid_i = fid[i].view(1,-1)[0]
+                    output_list.append({'fid': fid_i.cpu().detach().numpy()[0],
+                                    'crop_id': label_ids[y_true[i]],
+                                    'crop_name': label_names[y_true[i]]})
 
-    #  save predictions into output json:
+    #  save reference into output json:
     if args.split == 'train':
         output_name = os.path.join(args.target_dir, 'reference_val.json')
         print(f'Reference for validation was saved to location: {(output_name)}')
         output_frame = pd.DataFrame.from_dict(output_list)
         output_frame.to_json(output_name)
     else:
-        output_name = os.path.join(args.target_dir, 'submission_val.json')
-        print(f'Reference for submission was saved to location: {(output_name)}')
-        output_frame = pd.DataFrame.from_dict(output_list)
-        output_frame.to_json(output_name)
-        #print(f'No reference was saved')
+        print(f'No reference was saved')
 
 
 def save_predictions(save_model_path, model, data_loader, device, label_ids, label_names, args):
@@ -252,15 +240,15 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
                         x, _, mask, fid = batch
                         if args.use_pselatae: logits = model((x.to(device), mask.to(device)))
                         else: logits = model(x.to(device))
-                    
-                    #X, _, _, fid = batch
-                    #logits = model(X.to(device))
-                    predicted_probabilities = softmax(logits).cpu().detach().numpy()[0]
-                    predicted_class = np.argmax(predicted_probabilities)
-                    output_list.append({'fid': fid.cpu().detach().numpy()[0],
-                                'crop_id': label_ids[predicted_class],
-                                'crop_name': label_names[predicted_class],
-                                'crop_probs': np.array(predicted_probabilities)})
+                    for i in range(logits.size()[0]):
+                        logits_i = logits[i].view(1,-1)
+                        predicted_probabilities = softmax(logits_i).cpu().detach().numpy()[0]
+                        fid_i = fid[i].view(1,-1)[0]
+                        predicted_class = np.argmax(predicted_probabilities)
+                        output_list.append({'fid': fid_i.cpu().detach().numpy()[0],
+                                    'crop_id': label_ids[predicted_class],
+                                    'crop_name': label_names[predicted_class],
+                                    'crop_probs': np.array(predicted_probabilities)})
 
         #  save predictions into output json:
         if args.split == 'train':
