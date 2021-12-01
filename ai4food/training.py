@@ -152,7 +152,7 @@ def main(args):
                     valid_loss: {valid_loss:.4f}, eval_metric {valid_metric:.4}')
             # nni
             if args.nni:
-                nni.report_intermediate_result(valid_loss)
+                nni.report_intermediate_result(valid_metric)
         
             # early stopping
             if valid_loss < best_loss:
@@ -176,7 +176,7 @@ def main(args):
 
         # nni
         if args.nni:
-            nni.report_final_result(best_loss)
+            nni.report_final_result(best_metric)
 
         # save best model
         save_model_path = os.path.join(args.target_dir, 'best_model.pt')
@@ -198,12 +198,12 @@ def main(args):
     # make predictions   
     if args.save_preds:
         if args.split == 'train':
-            test_loader = DataLoader(valid_dataset, batch_size=1, num_workers=8)
+            test_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
         
             #test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
             #        sampler=valid_sampler, num_workers=args.num_workers)
         else:
-            test_loader = DataLoader(test_dataset, batch_size=1, num_workers=8)
+            test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
             save_model_path = os.path.join(args.target_dir, 'best_model.pt')
 
         print(f'\nINFO: saving predictions from the {args.save_preds} set')
@@ -212,11 +212,11 @@ def main(args):
     # save reference
     if args.save_ref:
         if args.split == 'train':
-            test_loader = DataLoader(valid_dataset, batch_size=1, num_workers=8)
+            test_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
             #test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
             #        sampler=valid_sampler, num_workers=args.num_workers)
         else:
-            test_loader = DataLoader(test_dataset, batch_size=1, num_workers=8)
+            test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
 
         print(f'\nINFO: saving reference from the {args.save_preds} set')
         save_reference(test_loader, device, label_ids, label_names, args)
@@ -253,7 +253,7 @@ def get_paselatae_model_config(args, verbose=False):
             'T':1000,                # Maximum period for the positional encoding
             'lms':244,                # Maximum sequence length for positional encoding (only necessary if positions == order) !!! change to 48 for planet-5
             'positions': 'bespoke',     # Positions to use for the positional encoding (bespoke / order)
-            'mlp4': [128, 64, 32, 20], # Number of neurons in the layers of MLP4
+            'mlp4': [128, 64, 32, 5], # Number of neurons in the layers of MLP4
             'd_model': 256,              # size of the embeddings (E), if input vectors are of a different size, a linear layer is used to project them to a d_model-dimensional space
             'geomfeat': include_extras,   # If 1 the precomputed geometrical features (f) are used in the PSE
             }

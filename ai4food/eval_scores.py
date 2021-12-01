@@ -12,10 +12,10 @@ import json
 import tensorflow as tf
 
 def main(args):
-    reference_file = os.path.join(args.ref_path, 'reference_val.json')
-    #reference_file = os.path.join(args.ref_path, 'submission_val.json')
-    submission_file = os.path.join(args.pred_path, 'validation.json')
-    #submission_file = os.path.join(args.pred_path, 'submission.json')
+    #reference_file = os.path.join(args.ref_path, 'reference_val.json')
+    reference_file = os.path.join(args.ref_path, 'submission_val.json')
+    #submission_file = os.path.join(args.pred_path, 'validation.json')
+    submission_file = os.path.join(args.pred_path, 'submission.json')
 
     # Opening JSON file
     with open(reference_file) as json_file:
