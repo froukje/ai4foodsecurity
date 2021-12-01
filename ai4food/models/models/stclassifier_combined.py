@@ -18,7 +18,7 @@ class PseLTaeCombined(nn.Module):
     def __init__(self, input_dim_planet=5, input_dim_s1=3, mlp1_planet=[5, 32, 64], mlp1_s1=[3, 32, 64], pooling='mean_std', mlp2=[132, 128], with_extra=True, 
                  extra_size=4, n_head=16, d_k=8, d_model=256, mlp3_planet=[256, 128], mlp3_s1=[256, 64],dropout=0.2, T=1000, len_max_seq_planet=244, len_max_seq_s1=41,positions=None,
                  mlp4=[128+64, 64, 32, 20], return_att=False):
-        super(PseLTae, self).__init__()
+        super(PseLTaeCombined, self).__init__()
         
         self.spatial_encoder_planet = PixelSetEncoder(input_dim_planet, mlp1=mlp1_planet, pooling=pooling, mlp2=mlp2, with_extra=with_extra,
                                                extra_size=extra_size)

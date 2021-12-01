@@ -20,10 +20,10 @@ class EarthObservationDataset(Dataset):
     def __init__(self, args):
         super().__init__()
         self.args = args
-
-        ### for now only
+        
+        ### for now only - remove when we have proper path to sentinel-1 data
         if args.input_data[0]=='sentinel-1':
-            self.h5_file = h5py.File(f'{args.split}_data.h5', 'r')
+            self.h5_file = h5py.File(f'../../s1_extracted/{args.split}_data.h5', 'r')
         else:
             self.h5_file = h5py.File(os.path.join(args.dev_data_dir, args.input_data[0], args.input_data_type, f'{args.split}_data.h5'), 'r')
 
@@ -109,7 +109,6 @@ class Sentinel1Dataset(EarthObservationDataset):
         dop = (VV/(VV+VH))
         m = 1 - dop
         radar_vegetation_index = (np.sqrt(dop))*((4*(VH))/(VV+VH))
-        print('lalalla', radar_vegetation_index.shape)
         return radar_vegetation_index
 
 
@@ -161,5 +160,46 @@ class CombinedDataset(Dataset):
                 args.input_data = ['sentinel-2']
                 sentinel2_dataset = Sentinel2Dataset(args)
                 self.datasets.append(sentinel2_dataset)
+        args.input_data = input_data 
+        '''
+        # this is necessary only when s1 and planet data samples don't match
+        lengths0 = len(self.datasets[0])
+        lengths1 = len(self.datasets[1])
+
+        if lengths0!=lengths1:
+            fids0 = self.datasets[0].fid
+            fids1 = self.datasets[1].fid
+            not_in_fid1 = np.setdiff1d(fids0,fids1)
+            not_in_fid0 = np.setdiff1d(fids1,fids0) 
+            u,c=np.unique(fids0, return_counts=True)
+            dup=u[c>1]
+            where_rem=[np.where(fids0==dup)[0][-1]]
+            for it in not_in_fid1:
+                where_rem.append(np.where(fids0==it)[0][0])
+                
+            self.datasets[0].X = np.delete(self.datasets[0].X, where_rem, axis=0)
+            self.datasets[0].mask = np.delete(self.datasets[0].mask, where_rem, axis=0)
+            self.datasets[0].fid = np.delete(self.datasets[0].fid, where_rem)
+            self.datasets[0].labels = np.delete(self.datasets[0].labels, where_rem)
+        
+        sorted0_ids = self.datasets[0].fid.argsort()
+        sorted1_ids = self.datasets[1].fid.argsort()
+        
+        self.datasets[0].X = self.datasets[0].X[sorted0_ids]
+        self.datasets[0].mask = self.datasets[0].mask[sorted0_ids]
+        self.datasets[0].fid = self.datasets[0].fid[sorted0_ids]
+        self.datasets[0].labels = self.datasets[0].labels[sorted0_ids]
+
+        self.datasets[1].X = self.datasets[1].X[sorted1_ids]
+        self.datasets[1].mask = self.datasets[1].mask[sorted1_ids]
+        self.datasets[1].fid = self.datasets[1].fid[sorted1_ids]
+        self.datasets[1].labels = self.datasets[1].labels[sorted1_ids]
+        '''
+        for i in range(1, len(self.datasets))
+        assert (self.datasets[i-1].fid==self.datasets[i].fid).all(),'s1 and planet not sorted correctly'
+    
+    def __len__(self):
+        return len(self.datasets[0].labels) 
+    
     def __getitem__(self, idx):
         return tuple(d[idx] for d in self.datasets)
