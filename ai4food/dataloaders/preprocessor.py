@@ -372,7 +372,7 @@ class Preprocessor(object):
         start_time = time.time()
 
         for i,sample in enumerate(reader):
-            if sample is None:
+            if sample is None or sample[0].shape[2]==0:
                 print('skipping sample in extend_dataset', i)
                 continue
             if i%100 == 0:

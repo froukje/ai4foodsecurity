@@ -84,7 +84,7 @@ class S1Reader(Dataset):
         else:
             print("ERROR: {} is a missing...".format(npyfile))
             return None
-
+                
         if self.data_transform is not None:
             image_stack, mask = self.data_transform(image_stack, mask)
 
@@ -95,7 +95,6 @@ class S1Reader(Dataset):
             label = self.crop_ids.index(feature.crop_id)
         else:
             label = feature.crop_id
-
         return image_stack, label, mask, feature.fid, feature.crop_name
 
 
