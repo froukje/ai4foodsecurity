@@ -52,9 +52,9 @@ class EarthObservationDataset(Dataset):
         #X[:,:,~mask] = self.args.fill_value
         if self.extra_features is not None:
             extra_f = self.extra_features[idx]
-            return X, label, mask, fid, extra_f
+            return (X, mask, fid, extra_f), label
         else:
-            return X, label, mask, fid
+            return (X, mask, fid), label
 
 class Sentinel2Dataset(EarthObservationDataset):
     '''
