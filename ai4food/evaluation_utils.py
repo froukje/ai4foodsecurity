@@ -276,3 +276,84 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
 
     else:
         print('INFO: no best model found ...')
+
+'''
+def save_predictions_majority(target_dir, model, data_loader, device, label_ids, label_names, args, num_folds=5):
+    
+    not_found=0
+    softmax=torch.nn.Softmax(dim=1)
+    probs_array=np.zeros(len(data_loader))
+    batch = args.batch_size
+    for k in range(num_folds):
+        
+        if os.path.exists(target_dir):
+            save_model_path = os.path.join(args.target_dir, 'best_model_fold{fold}.pt')
+            checkpoint = torch.load(save_model_path)
+            START_EPOCH = checkpoint["epoch"]
+            log = checkpoint["log"]
+            model.load_state_dict(checkpoint["model_state"])
+            model.eval()
+            print(f"INFO: Resuming from {save_model_path}, epoch {START_EPOCH}")
+
+            # list of dictionaries with predictions:
+            output_list=[]
+
+            with torch.no_grad():
+                with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
+                    for idx, batch in iterator:
+
+                        if args.use_pselatae and args.include_extras:
+                            x, _, mask, fid, extra_features = batch
+                            logits = model(((x.to(device), mask.to(device)), extra_features.to(device)))
+                        # for combined model - current implementation wo extra features
+                        elif len(args.input_dim)>1:
+                            sample_planet, sample_s1 = batch
+                            for i in range(len(sample_planet)):
+                                sample_planet[i] = sample_planet[i].to(device)
+                                sample_s1[i] = sample_s1[i].to(device)
+                            x_p, _, mask_p, fid = sample_planet
+                            x_s1, _, mask_s1, _ = sample_s1
+                            logits = model(((x_p, mask_p), (x_s1, mask_s1)))
+                        # for spatiotemporal model
+                        else:
+                            x, _, mask, fid = batch
+                            if args.use_pselatae: logits = model((x.to(device), mask.to(device)))
+                            else: logits = model(x.to(device))
+                        for i in range(logits.size()[0]):
+                            logits_i = logits[i].view(1,-1)
+                            predicted_probabilities = softmax(logits_i).cpu().detach().numpy()[0]
+                            probs_array[idx*batch:(idx*batch)+batch] += predicted_probabilities
+                            
+                            if k==(num_folds-1):
+                                probs_array_ids= probs_array[idx*batch:(idx*batch)+batch]/(num_folds-not_found)
+                                fid_i = fid[i].view(1,-1)[0]
+                                predicted_class = np.argmax(probs_array_ids)
+                                output_list.append({'fid': fid_i.cpu().detach().numpy()[0],
+                                            'crop_id': label_ids[predicted_class],
+                                            'crop_name': label_names[predicted_class],
+                                            'crop_probs': np.array(probs_array_ids)})
+
+        else:
+            print(f"INFO: no best model found for fold {k}")
+            not_found+=1
+            
+        #  save predictions into output json:
+        output_name = os.path.join(args.target_dir, 'submission.json')
+        print(f'Submission was saved to location: {(output_name)}')
+        output_frame = pd.DataFrame.from_dict(output_list)
+        # ____________________temporary fix for class mismatch________________________
+        # swap 1s and 4s
+        crop_ids = output_frame['crop_id']
+        crop_ids = np.array(crop_ids)
+        crop_ids[crop_ids==1] = 100
+        crop_ids[crop_ids==4] = 1
+        crop_ids[crop_ids==100] = 4
+        output_frame['crop_id'] = crop_ids.astype(np.uint8)
+        # swap Wheat and Lucerne/Medics
+        output_frame['crop_name']=output_frame['crop_name'].str.replace('Wheat', 'blabla')
+        output_frame['crop_name']=output_frame['crop_name'].str.replace('Lucerne/Medics', 'Wheat')
+        output_frame['crop_name']=output_frame['crop_name'].str.replace('blabla', 'Lucerne/Medics')
+
+        output_frame.to_json(output_name)
+        
+'''

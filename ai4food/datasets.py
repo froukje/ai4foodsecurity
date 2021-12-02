@@ -195,8 +195,8 @@ class CombinedDataset(Dataset):
         self.datasets[1].fid = self.datasets[1].fid[sorted1_ids]
         self.datasets[1].labels = self.datasets[1].labels[sorted1_ids]
         '''
-        for i in range(1, len(self.datasets))
-        assert (self.datasets[i-1].fid==self.datasets[i].fid).all(),'s1 and planet not sorted correctly'
+        for i in range(1, len(self.datasets)):
+            assert (self.datasets[i-1].fid==self.datasets[i].fid).all(),'s1 and planet not sorted correctly'
     
     def __len__(self):
         return len(self.datasets[0].labels) 
