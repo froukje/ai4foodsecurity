@@ -187,7 +187,7 @@ def save_reference(data_loader, device, label_ids, label_names, args):
     with torch.no_grad():
         with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
             for idx, batch in iterator:
-                if len(args.input_dim)>1: batch=batch[0]
+                if args.input_dim>1: batch=batch[0]
                 if args.include_extras: (_, _, fid,_), y_true = batch
                 else: (_, _, fid), y_true = batch
                 for i in range(y_true.size()[0]):
@@ -227,7 +227,7 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
                         (x, mask, fid, extra_features), _ = batch
                         logits = model(((x.to(device), mask.to(device)), extra_features.to(device)))
                     # for combined model - current implementation wo extra features
-                    elif len(args.input_dim)>1:
+                    elif len(args.input_data)>1:
                         sample_planet, sample_s1 = batch
                         for i in range(len(sample_planet)):
                             sample_planet[i] = sample_planet[i].to(device)
@@ -257,23 +257,23 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
         else:
             output_name = os.path.join(args.target_dir, 'submission.json')
             print(f'Submission was saved to location: {(output_name)}')
-        output_frame = pd.DataFrame.from_dict(output_list)
+        #output_frame = pd.DataFrame.from_dict(output_list)
         # temporary fix for class mismatch
-        if args.split == 'test':
+        #if args.split == 'test':
             # swap 1s and 4s
-            crop_ids = output_frame['crop_id']
-            crop_ids = np.array(crop_ids)
-            crop_ids[crop_ids==1] = 100
-            crop_ids[crop_ids==4] = 1
-            crop_ids[crop_ids==100] = 4
-            output_frame['crop_id'] = crop_ids.astype(np.uint8)
+       #     crop_ids = output_frame['crop_id']
+       #     crop_ids = np.array(crop_ids)
+       #     crop_ids[crop_ids==1] = 100
+       #     crop_ids[crop_ids==4] = 1
+       #     crop_ids[crop_ids==100] = 4
+       #     output_frame['crop_id'] = crop_ids.astype(np.uint8)
             # swap Wheat and Lucerne/Medics
-            output_frame['crop_name']=output_frame['crop_name'].str.replace('Wheat', 'blabla')
-            output_frame['crop_name']=output_frame['crop_name'].str.replace('Lucerne/Medics', 'Wheat')
-            output_frame['crop_name']=output_frame['crop_name'].str.replace('blabla', 'Lucerne/Medics')
+       #     output_frame['crop_name']=output_frame['crop_name'].str.replace('Wheat', 'blabla')
+       #     output_frame['crop_name']=output_frame['crop_name'].str.replace('Lucerne/Medics', 'Wheat')
+       #     output_frame['crop_name']=output_frame['crop_name'].str.replace('blabla', 'Lucerne/Medics')
 
-        print(output_frame.tail())
-        output_frame.to_json(output_name)
+       #print(output_frame.tail())
+       #output_frame.to_json(output_name)
 
     else:
         print('INFO: no best model found ...')
@@ -307,7 +307,7 @@ def save_predictions_majority(target_dir, model, data_loader, device, label_ids,
                             (x, mask, fid, extra_features), _ = batch
                             logits = model(((x.to(device), mask.to(device)), extra_features.to(device)))
                         # for combined model - current implementation wo extra features
-                        elif len(args.input_dim)>1:
+                        elif args.input_data>1:
                             sample_planet, sample_s1 = batch
                             for i in range(len(sample_planet)):
                                 sample_planet[i] = sample_planet[i].to(device)
@@ -341,21 +341,21 @@ def save_predictions_majority(target_dir, model, data_loader, device, label_ids,
             print(f"INFO: no best model found for fold {fold}")
             not_found+=1
             
-    ##  save predictions into output json:
-    #output_name = os.path.join(args.target_dir, 'submission.json')
-    #print(f'Submission was saved to location: {(output_name)}')
-    #output_frame = pd.DataFrame.from_dict(output_list)
-    ## ____________________temporary fix for class mismatch________________________
-    ## swap 1s and 4s
-    #crop_ids = output_frame['crop_id']
-    #crop_ids = np.array(crop_ids)
-    #crop_ids[crop_ids==1] = 100
-    #crop_ids[crop_ids==4] = 1
-    #crop_ids[crop_ids==100] = 4
-    #output_frame['crop_id'] = crop_ids.astype(np.uint8)
-    ## swap Wheat and Lucerne/Medics
-    #output_frame['crop_name']=output_frame['crop_name'].str.replace('Wheat', 'blabla')
-    #output_frame['crop_name']=output_frame['crop_name'].str.replace('Lucerne/Medics', 'Wheat')
-    #output_frame['crop_name']=output_frame['crop_name'].str.replace('blabla', 'Lucerne/Medics')
+    #  save predictions into output json:
+    output_name = os.path.join(args.target_dir, 'submission.json')
+    print(f'Submission was saved to location: {(output_name)}')
+    output_frame = pd.DataFrame.from_dict(output_list)
+    # ____________________temporary fix for class mismatch________________________
+    # swap 1s and 4s
+    crop_ids = output_frame['crop_id']
+    crop_ids = np.array(crop_ids)
+    crop_ids[crop_ids==1] = 100
+    crop_ids[crop_ids==4] = 1
+    crop_ids[crop_ids==100] = 4
+    output_frame['crop_id'] = crop_ids.astype(np.uint8)
+    # swap Wheat and Lucerne/Medics
+    output_frame['crop_name']=output_frame['crop_name'].str.replace('Wheat', 'blabla')
+    output_frame['crop_name']=output_frame['crop_name'].str.replace('Lucerne/Medics', 'Wheat')
+    output_frame['crop_name']=output_frame['crop_name'].str.replace('blabla', 'Lucerne/Medics')
 
-    #output_frame.to_json(output_name)
+    output_frame.to_json(output_name)
