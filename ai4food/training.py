@@ -18,6 +18,7 @@ from baseline_models import SpatiotemporalModel
 path_to_pseltae = "models"
 sys.path.append(path_to_pseltae)
 from models.stclassifier import PseLTae, PseTae
+from models.stclassifier_combined import PseLTaeCombined 
 
 import torch
 from torch import nn
@@ -25,7 +26,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
-from datasets import EarthObservationDataset, PlanetDataset, Sentinel2Dataset
+from datasets import EarthObservationDataset, PlanetDataset, Sentinel2Dataset, Sentinel1Dataset, CombinedDataset
 
 import numpy as np
 import geopandas as gpd
@@ -35,31 +36,63 @@ import time
 
 
 def main(args):
-   
+    
+    # setting seeds for reproducability and method comparison
+    np.random.seed(1)
+    torch.manual_seed(1)
+    torch.cuda.manual_seed_all(1)
+
     # construct the dataset
-    test_dataset = PlanetDataset(args)
+    if len(args.input_data)==1:
+        test_dataset = PlanetDataset(args) 
+    else:
+        test_dataset = CombinedDataset(args) 
+    
     print('Labels in train and valid / (test)')
-    (unique, counts) = np.unique(test_dataset[:][1], return_counts=True)
+    if len(args.input_data)==1:
+        (unique, counts) = np.unique(test_dataset[:][1], return_counts=True)
+    else:
+        (unique, counts) = np.unique(test_dataset[:][0][1], return_counts=True)
     frequencies = np.asarray((unique, counts)).T
     print(frequencies)
+
     # if training, split dataset in train and valid
-    if args.split=='train':
+    if args.split=='train':        
+        
         # lengths of train and valid datasets
         train_length = int(len(test_dataset) * 0.8)
         valid_length = len(test_dataset) - train_length
         lengths = [train_length, valid_length]
         train_dataset, valid_dataset = torch.utils.data.random_split(test_dataset, 
                                                 lengths=lengths, 
-                                                generator=torch.Generator().manual_seed(42))
+                                                generator=torch.Generator().manual_seed(7)) #42))
         print('Labels in train')
-        (unique, counts) = np.unique(train_dataset[:][1], return_counts=True)
+        if len(args.input_data)==1: (unique, counts) = np.unique(train_dataset[:][1], return_counts=True)
+        else: (unique, counts) = np.unique(train_dataset[:][0][1], return_counts=True)
+        
         frequencies = np.asarray((unique, counts)).T
         print(frequencies)
+        
+        # compute class weights - INS from: https://medium.com/gumgum-tech/handling-class-imbalance-by-introducing-sample-weighting-in-the-loss-function-3bdebd8203b4
+        no_of_classes = unique.shape[0]
+        weights_for_samples = 1/frequencies[:,1]
+        weights_for_samples = weights_for_samples/np.sum(weights_for_samples)*no_of_classes        
+        
         print('Labels in valid')
-        (unique, counts) = np.unique(valid_dataset[:][1], return_counts=True)
+        if len(args.input_data)==1: (unique, counts) = np.unique(valid_dataset[:][1], return_counts=True)
+        else: (unique, counts) = np.unique(valid_dataset[:][0][1], return_counts=True)
         frequencies = np.asarray((unique, counts)).T
         print(frequencies)
 
+<<<<<<< HEAD
+=======
+        #split = 1715
+        #indices = list(range(len(test_dataset)))
+        #train_idx, valid_idx = indices[split:], indices[:split]
+        #train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_idx)
+        #valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(valid_idx)
+       
+>>>>>>> 790cd239fcbfc1c9fe1eb1f186352d1b96ab1b10
     label_ids = [1, 2, 3, 4, 5]
     label_names = ['Wheat', 'Barley', 'Canola', 'Lucerne/Medics', 'Small grain grazing']
 
@@ -77,10 +110,12 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # instatiate the model
-    if args.use_pselatae:
-        model = PseLTae(**model_config)  #PseTae(**model_config)
-    else:
-        model = SpatiotemporalModel(input_dim=args.input_dim, num_classes=len(label_ids), sequencelength=args.sequence_length, spatial_backbone=args.spatial_backbone, temporal_backbone=args.temporal_backbone, device=device)
+    if len(args.input_data)==1:
+        if args.use_pselatae:
+            model = PseLTae(**model_config)  #PseTae(**model_config) # 
+        else:
+            model = SpatiotemporalModel(input_dim=args.input_dim, num_classes=len(label_ids), sequencelength=args.sequence_length, spatial_backbone=args.spatial_backbone, temporal_backbone=args.temporal_backbone, device=device)
+    else: model = PseLTaeCombined(**model_config)
     
     if torch.cuda.is_available():
         model = model.cuda()
@@ -89,7 +124,13 @@ def main(args):
 
     # Initialize model optimizer and loss criterion:
     optimizer = Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
+<<<<<<< HEAD
     criterion = CrossEntropyLoss(reduction="mean")
+=======
+    weights_for_samples = torch.Tensor(weights_for_samples).to(device)
+    criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="mean")
+    #criterion = nn.NLLLoss(reduction='sum')
+>>>>>>> 790cd239fcbfc1c9fe1eb1f186352d1b96ab1b10
 
     # training
     best_loss = np.inf
@@ -120,7 +161,7 @@ def main(args):
             valid_loss, y_true, y_pred, *_, valid_metric = validation_epoch(model, 
                                                                             valid_loader, 
                                                                             classes, 
-                                                                            criterion, 
+                                                                            criterion,
                                                                             args, 
                                                                             device=device)
             valid_loss = valid_loss.cpu().detach().numpy()[0]
@@ -150,6 +191,7 @@ def main(args):
                 best_log_scores = log_scores
                 best_model = copy.deepcopy(model)
                 best_optimizer = copy.deepcopy(optimizer)
+                best_epoch = epoch
                 best_preds = y_pred
                 patience_count = 0
             else:
@@ -157,6 +199,7 @@ def main(args):
 
             if patience_count == args.patience:
                 print(f'no improvement for {args.patience} epochs -> early stopping')
+                print(f'best metric: {best_metric:.2f} and best loss: {best_loss:.2f} at epoch: {(epoch-patience_count)}')
                 break
         
             # save checkpoints
@@ -171,8 +214,8 @@ def main(args):
 
         # save best model
         save_model_path = os.path.join(args.target_dir, 'best_model.pt')
-        torch.save(dict(model_state=model.state_dict(), optimizer_state=optimizer.state_dict(), 
-                    epoch=epoch, log=log_scores), save_model_path)
+        torch.save(dict(model_state=best_model.state_dict(), optimizer_state=best_optimizer.state_dict(), 
+                    epoch=best_epoch, log=log_scores), save_model_path)
         print(f'saved best model to {save_model_path}')
         
         # save training and validation history
@@ -231,6 +274,7 @@ def get_paselatae_model_config(args, verbose=False):
         lms = 48
     if include_extras: extra_size = 2
     else: extra_size = 0
+<<<<<<< HEAD
     mlp2_first_layer = args.mlp1_out*2 + extra_size#128 + extra_size
     config = {
             'mlp1': [args.input_dim,args.mlp1_in,args.mlp1_out],    # Number of neurons in the layers of MLP1
@@ -253,32 +297,94 @@ def get_paselatae_model_config(args, verbose=False):
                         dropout=config['dropout'], T=config['T'], len_max_seq=config['lms'],
                         positions=None, #dt.date_positions if config['positions'] == 'bespoke' else None,
                         mlp4=config['mlp4'], d_model=config['d_model'])
+=======
+    mlp2_first_layer = 128 + extra_size
+    
+    if len(args.input_data)==1:
+        if args.input_data[0]=='planet':
+            lms = 244
+        elif args.input_data[0]=='planet-5':
+            lms = 48
+        elif args.input_data[0]=='sentinel-1':
+            lms = 41
+        config = {
+                'mlp1': [args.input_dim[0],32,64],    # Number of neurons in the layers of MLP1
+                'pooling': 'mean_std',   # Pixel-embeddings pooling strategy
+                'mlp2': [mlp2_first_layer,mlp2_first_layer],     # Number of neurons in the layers of MLP2
+                'n_head': args.n_head,   # Number of attention heads
+                'd_k': args.d_k,                # Dimension of the key and query vectors
+                'mlp3': [256,128],     # Number of neurons in the layers of MLP3
+                'dropout': args.dropout,          # Dropout probability
+                'T':1000,                # Maximum period for the positional encoding
+                'lms':lms,                # Maximum sequence length for positional encoding (only necessary if positions == order) !!! change to 48 for planet-5
+                'positions': 'bespoke',     # Positions to use for the positional encoding (bespoke / order)
+                'mlp4': [128, 64, 32, 5], # Number of neurons in the layers of MLP4
+                'd_model': 256,              # size of the embeddings (E), if input vectors are of a different size, a linear layer is used to project them to a d_model-dimensional space
+                'geomfeat': include_extras,   # If 1 the precomputed geometrical features (f) are used in the PSE
+                }
+
+        model_config = dict(input_dim=args.input_dim[0], mlp1=config['mlp1'], pooling=config['pooling'],
+                            mlp2=config['mlp2'], n_head=config['n_head'], d_k=config['d_k'], mlp3=config['mlp3'],
+                            dropout=config['dropout'], T=config['T'], len_max_seq=config['lms'],
+                            positions=None, #dt.date_positions if config['positions'] == 'bespoke' else None,
+                            mlp4=config['mlp4'], d_model=config['d_model'])
+    else:
+    
+        config = {
+                'mlp1-planet': [args.input_dim[0],32,64],    # Number of neurons in the layers of MLP1
+                'mlp1-s1': [args.input_dim[1],32,64],    # Number of neurons in the layers of MLP1
+                'pooling': 'mean_std',   # Pixel-embeddings pooling strategy
+                'mlp2': [mlp2_first_layer,mlp2_first_layer],     # Number of neurons in the layers of MLP2
+                'n_head': args.n_head,   # Number of attention heads
+                'd_k': args.d_k,                # Dimension of the key and query vectors
+                'mlp3_planet': [256, 128],     # Number of neurons in the layers of MLP3
+                'mlp3_s1': [256, 64],     # Number of neurons in the layers of MLP3
+                'dropout': args.dropout,          # Dropout probability
+                'T':1000,                # Maximum period for the positional encoding
+                'lms_planet':244,                # Maximum sequence length for positional encoding (only necessary if positions == order) !!! change to 48 for planet-5
+                'lms_s1': 41,
+                'positions': 'bespoke',     # Positions to use for the positional encoding (bespoke / order)
+                'mlp4': [128+64, 64, 32, 5], # Number of neurons in the layers of MLP4
+                'd_model': 256,              # size of the embeddings (E), if input vectors are of a different size, a linear layer is used to project them to a d_model-dimensional space
+                'geomfeat': include_extras,   # If 1 the precomputed geometrical features (f) are used in the PSE
+                }
+
+        model_config = dict(input_dim_planet=args.input_dim[0], input_dim_s1=args.input_dim[1], mlp1_planet=config['mlp1-planet'], mlp1_s1=config['mlp1-s1'], pooling=config['pooling'],
+                            mlp2=config['mlp2'], n_head=config['n_head'], d_k=config['d_k'], mlp3_planet=config['mlp3_planet'], mlp3_s1=config['mlp3_s1'],
+                            dropout=config['dropout'], T=config['T'], len_max_seq_planet=config['lms_planet'], len_max_seq_s1=config['lms_s1'],
+                            positions=None, #dt.date_positions if config['positions'] == 'bespoke' else None,
+                            mlp4=config['mlp4'], d_model=config['d_model'])
+>>>>>>> 790cd239fcbfc1c9fe1eb1f186352d1b96ab1b10
     if config['geomfeat']:
         model_config.update(with_extra=True, extra_size=extra_size) # extra_size number of extra features
     else:
-        model_config.update(with_extra=False, extra_size=None)
+        model_config.update(with_extra=False, extra_size=None)   
     
     if verbose: print('Model configs: ', model_config)
     
     return model_config
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dev-data-dir', type=str, 
-                        default='../../../shared_data/2021-ai4food/dev_data/south-africa/planet/extracted')
+                        default='../../../shared_data/2021-ai4food/dev_data/south-africa')
+    parser.add_argument('--input-data-type', type=str, default='extracted')
+    parser.add_argument('--input-data', nargs="*", type=str, default='planet')
     parser.add_argument('--target-dir', type=str, default='.')
     parser.add_argument('--split', type=str, default='test', choices=['train', 'test']) 
     parser.add_argument('--nni', action='store_true', default=False)
-    parser.add_argument('--save-preds', action='store_true', default=True) 
+    parser.add_argument('--save-preds', action='store_true', default=False) 
     parser.add_argument('--save-ref', action='store_true', default=False) 
     parser.add_argument('--max-epochs', type=int, default=100)
     parser.add_argument('--patience', type=int, default=10)
     parser.add_argument('--checkpoint-epoch', type=int, default=20)
     parser.add_argument('--batch-size', type=int, default=8)
-    parser.add_argument('--input-dim', type=int, default=4)
+    parser.add_argument('--input-dim', type=int, nargs="*", default=4)
     parser.add_argument('--sequence-length', type=int, default=74)
     parser.add_argument('--num-workers', type=int, default=8)
     parser.add_argument('--ndvi', type=int, default=0, choices=[0, 1])
+    parser.add_argument('--nri', type=int, default=0, choices=[0, 1])
     parser.add_argument('--use-pselatae', type=int, default=1, choices=[0,1])
     parser.add_argument('--temporal-backbone', type=str, default='lstm', 
                         choices=["inceptiontime", "lstm", "msresnet", "starrnn", "tempcnn", "transformermodel"])
@@ -314,7 +420,7 @@ if __name__ == '__main__':
     if args.use_pselatae:
         model_config = get_paselatae_model_config(args, verbose=True)
         args.model_config = model_config
-        
+
     main(args)
 
 

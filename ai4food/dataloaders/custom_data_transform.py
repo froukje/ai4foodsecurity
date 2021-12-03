@@ -47,22 +47,28 @@ class EOTransformer():
                 # according to https://github.com/VSainteuf/lightweight-temporal-attention-pytorch/blob/master/dataset.py
                 image_stack_shape = image_stack.shape
                 mask_shape = mask.shape
-
                 image_stack = image_stack.reshape((image_stack.shape[0], image_stack.shape[1], -1))
                 mask = mask.flatten()
 
                 good_pixel_ixs = np.where(mask>0)[0]
+                if len(good_pixel_ixs)!=0:
+                    if len(good_pixel_ixs) < self.random_extraction:  # too few pixels - need to resample
+                        sel_ixs = np.random.choice(len(good_pixel_ixs), size=self.random_extraction, replace=True)
+                    else:
+                        sel_ixs = np.random.choice(len(good_pixel_ixs), size=self.random_extraction, replace=False)
 
-                if len(good_pixel_ixs) < self.random_extraction: # too few pixels - need to resample
-                    sel_ixs = np.random.choice(len(good_pixel_ixs), size=self.random_extraction, replace=True)
+                    pixel_ix = good_pixel_ixs[sel_ixs]
+
+                    image_stack = image_stack[:, :, pixel_ix]
+                    mask = pixel_ix # return the pixels we used
+                
                 else:
-                    sel_ixs = np.random.choice(len(good_pixel_ixs), size=self.random_extraction, replace=False)
-
-                pixel_ix = good_pixel_ixs[sel_ixs]
-
-                image_stack = image_stack[:, :, pixel_ix]
-                mask = pixel_ix # return the pixels we used
-
+                    #image_stack = np.squeeze(image_stack, axis=2)
+                    #sel_ixs = np.random.choice(len(good_pixel_ixs), size=self.random_extraction, replace=True)
+                    #image_stack = image_stack[:,:,sel_ixs]
+                    #mask = sel_ixs
+                    pass
+                    
         else:  # crop/pad image to fixed size + augmentations: T, D, H, W = image_stack.shape
             if image_stack.shape[2] >= self.image_size and image_stack.shape[3] >= self.image_size:
                 image_stack, mask = random_crop(image_stack, mask, self.image_size)
