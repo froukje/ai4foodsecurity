@@ -98,7 +98,7 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
                 (x, mask, _, extra_features), y_true = batch
                 logprobs = model(((x.to(device), mask.to(device)), extra_features.to(device)))
             # for combined model - current implementation w/o extra features
-            elif len(args.input_dim)>1:
+            elif len(args.input_data)>1:
                 sample_planet, sample_s1 = batch
                 for i in range(len(sample_planet)):
                     sample_planet[i] = sample_planet[i].to(device)
@@ -152,7 +152,7 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
                     (x, mask, field_id, extra_features), y_true = batch
                     logprobs = model(((x.to(device), mask.to(device)), extra_features.to(device)))
                 # for combined model - current implementation wo extra features
-                elif len(args.input_dim)>1:
+                elif len(args.input_data)>1:
                     sample_planet, sample_s1 = batch
                     for i in range(len(sample_planet)):
                         sample_planet[i] = sample_planet[i].to(device)
