@@ -270,7 +270,7 @@ def get_pselatae_model_config(args, verbose=False):
         mlp2_first_layer = args.mlp1_out*2 + extra_size#128 + extra_size
         config = {
                 # Number of neurons in the layers of MLP1
-                'mlp1': [args.input_dim,args.mlp1_in,args.mlp1_out],    
+                'mlp1': [args.input_dim+args.ndvi,args.mlp1_in,args.mlp1_out],    
                 # Pixel-embeddings pooling strategy
                 'pooling': args.pool, #'mean_std',
                 # Number of neurons in the layers of MLP2
@@ -298,7 +298,7 @@ def get_pselatae_model_config(args, verbose=False):
                 'geomfeat': include_extras,  
                 }
 
-        model_config = dict(input_dim=args.input_dim, mlp1=config['mlp1'], pooling=config['pooling'],
+        model_config = dict(input_dim=args.input_dim+args.ndvi, mlp1=config['mlp1'], pooling=config['pooling'],
                         mlp2=config['mlp2'], n_head=config['n_head'], d_k=config['d_k'], mlp3=config['mlp3'],
                         dropout=config['dropout'], T=config['T'], len_max_seq=config['lms'],
                         positions=None, #dt.date_positions if config['positions'] == 'bespoke' else None,
