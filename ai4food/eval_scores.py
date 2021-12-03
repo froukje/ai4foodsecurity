@@ -12,10 +12,10 @@ import json
 import tensorflow as tf
 
 def main(args):
-    #reference_file = os.path.join(args.ref_path, 'reference_val.json')
-    reference_file = os.path.join(args.ref_path, 'submission_val.json')
-    #submission_file = os.path.join(args.pred_path, 'validation.json')
-    submission_file = os.path.join(args.pred_path, 'submission.json')
+    reference_file = os.path.join(args.ref_path, 'reference_val.json')
+    #reference_file = os.path.join(args.ref_path, 'submission_val.json')
+    submission_file = os.path.join(args.pred_path, 'validation.json')
+    #submission_file = os.path.join(args.pred_path, 'submission.json')
 
     # Opening JSON file
     with open(reference_file) as json_file:
@@ -67,8 +67,8 @@ def calculate_score(reference, submission):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser() 
-    parser.add_argument('--ref_path', type=str, default='.')
-    parser.add_argument('--pred_path', type=str, default='.')
+    parser.add_argument('--ref-path', type=str, default='.')
+    parser.add_argument('--pred-path', type=str, default='.')
     args = parser.parse_args()
 
     print('\nbegin args key: value')

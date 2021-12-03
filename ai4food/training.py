@@ -60,12 +60,6 @@ def main(args):
         frequencies = np.asarray((unique, counts)).T
         print(frequencies)
 
-        #split = 1715
-        #indices = list(range(len(test_dataset)))
-        #train_idx, valid_idx = indices[split:], indices[:split]
-        #train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_idx)
-        #valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(valid_idx)
-
     label_ids = [1, 2, 3, 4, 5]
     label_names = ['Wheat', 'Barley', 'Canola', 'Lucerne/Medics', 'Small grain grazing']
 
@@ -76,10 +70,6 @@ def main(args):
     if args.split == 'train':
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=8, shuffle=True, drop_last=True)
         valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=8,drop_last=True)
-        #train_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, sampler=train_sampler,
-        #                num_workers=args.num_workers)
-        #valid_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, sampler=valid_sampler,
-        #                num_workers=args.num_workers)
     else:
         test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
 
@@ -100,7 +90,6 @@ def main(args):
     # Initialize model optimizer and loss criterion:
     optimizer = Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
     criterion = CrossEntropyLoss(reduction="mean")
-    #criterion = nn.NLLLoss(reduction='sum')
 
     # training
     best_loss = np.inf
@@ -140,7 +129,6 @@ def main(args):
 
             # calculate metrics
             scores = metrics(y_true.cpu(), y_pred.cpu())
-            #scores_msg = ", ".join([f"{k}={v:.2f}" for (k, v) in scores.items()])
             scores["epoch"] = epoch
             scores["train_loss"] = train_loss
             scores["valid_loss"] = valid_loss
@@ -152,13 +140,16 @@ def main(args):
                     valid_loss: {valid_loss:.4f}, eval_metric {valid_metric:.4}')
             # nni
             if args.nni:
-                nni.report_intermediate_result(valid_metric)
+                nni.report_intermediate_result(valid_loss)
         
             # early stopping
             if valid_loss < best_loss:
                 best_loss = valid_loss
                 best_metric = valid_metric
+                best_epoch = epoch
+                best_log_scores = log_scores
                 best_model = copy.deepcopy(model)
+                best_optimizer = copy.deepcopy(optimizer)
                 best_preds = y_pred
                 patience_count = 0
             else:
@@ -171,12 +162,12 @@ def main(args):
             # save checkpoints
             if epoch % args.checkpoint_epoch == 0:
                 save_model_path = os.path.join(args.target_dir, f'epoch_{epoch}_model.pt')
-                torch.save(dict(model_state=model.state_dict(), optimizer_state=optimizer.state_dict(),
-                    epoch=epoch, log=log_scores), save_model_path)
+                torch.save(dict(model_state=best_model.state_dict(), optimizer_state=best_optimizer.state_dict(),
+                    epoch=best_epoch, log=best_log_scores), save_model_path)
 
         # nni
         if args.nni:
-            nni.report_final_result(best_metric)
+            nni.report_final_result(best_loss)
 
         # save best model
         save_model_path = os.path.join(args.target_dir, 'best_model.pt')
@@ -200,12 +191,10 @@ def main(args):
         if args.split == 'train':
             test_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
         
-            #test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
-            #        sampler=valid_sampler, num_workers=args.num_workers)
         else:
             test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
             save_model_path = os.path.join(args.target_dir, 'best_model.pt')
-
+        
         print(f'\nINFO: saving predictions from the {args.save_preds} set')
         save_predictions(save_model_path, model, test_loader, device, label_ids, label_names, args)
 
@@ -213,8 +202,6 @@ def main(args):
     if args.save_ref:
         if args.split == 'train':
             test_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
-            #test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
-            #        sampler=valid_sampler, num_workers=args.num_workers)
         else:
             test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
 
@@ -239,22 +226,25 @@ def add_nni_params(args):
 def get_paselatae_model_config(args, verbose=False):
     # adding PseLTae model configs
     include_extras = args.include_extras
+    lms = 244
+    if 'planet-5' in args.dev_data_dir:
+        lms = 48
     if include_extras: extra_size = 2
     else: extra_size = 0
-    mlp2_first_layer = 128 + extra_size
+    mlp2_first_layer = args.mlp1_out*2 + extra_size#128 + extra_size
     config = {
-            'mlp1': [4,32,64],    # Number of neurons in the layers of MLP1
-            'pooling': 'mean_std',   # Pixel-embeddings pooling strategy
+            'mlp1': [args.input_dim,args.mlp1_in,args.mlp1_out],    # Number of neurons in the layers of MLP1
+            'pooling': args.pool,#'mean_std',   # Pixel-embeddings pooling strategy
             'mlp2': [mlp2_first_layer,mlp2_first_layer],     # Number of neurons in the layers of MLP2
             'n_head': args.n_head,   # Number of attention heads
             'd_k': args.d_k,                # Dimension of the key and query vectors
-            'mlp3': [256,128],     # Number of neurons in the layers of MLP3
+            'mlp3': [args.n_head*args.factor, args.mlp3_out],     # Number of neurons in the layers of MLP3
             'dropout': args.dropout,          # Dropout probability
             'T':1000,                # Maximum period for the positional encoding
-            'lms':244,                # Maximum sequence length for positional encoding (only necessary if positions == order) !!! change to 48 for planet-5
+            'lms': lms + args.ndvi,  # Maximum sequence length for positional encoding (only necessary if positions == order) !!! change to 48 for planet-5
             'positions': 'bespoke',     # Positions to use for the positional encoding (bespoke / order)
-            'mlp4': [128, 64, 32, 5], # Number of neurons in the layers of MLP4
-            'd_model': 256,              # size of the embeddings (E), if input vectors are of a different size, a linear layer is used to project them to a d_model-dimensional space
+            'mlp4': [args.mlp3_out, args.mlp4_1, args.mlp4_2, 5],# Number of neurons in the layers of MLP4
+            'd_model': args.n_head*args.factor, # size of the embeddings (E), if input vectors are of a different size, a linear layer is used to project them to a d_model-dimensional space
             'geomfeat': include_extras,   # If 1 the precomputed geometrical features (f) are used in the PSE
             }
 
@@ -288,7 +278,6 @@ if __name__ == '__main__':
     parser.add_argument('--input-dim', type=int, default=4)
     parser.add_argument('--sequence-length', type=int, default=74)
     parser.add_argument('--num-workers', type=int, default=8)
-    #parser.add_argument('--ndvi', action='store_true', default=False)
     parser.add_argument('--ndvi', type=int, default=0, choices=[0, 1])
     parser.add_argument('--use-pselatae', type=int, default=1, choices=[0,1])
     parser.add_argument('--temporal-backbone', type=str, default='lstm', 
@@ -304,6 +293,14 @@ if __name__ == '__main__':
     parser.add_argument('--n-head', type=int, default=16)
     parser.add_argument('--d-k', type=int, default=8)
     parser.add_argument('--dropout', type=float, default=0.2)
+    parser.add_argument('--mlp1-in', type=int, default=32)
+    parser.add_argument('--mlp1-out', type=int, default=64)
+    parser.add_argument('--mlp3-out', type=int, default=128)
+    parser.add_argument('--mlp4-1', type=int, default=64)
+    parser.add_argument('--mlp4-2', type=int, default=32)
+    parser.add_argument('--factor', type=int, default=16)
+    # pool only working for default value!
+    parser.add_argument('--pool', type=str, default='mean_std', choices=['mean_std', 'mean', 'std', 'max', 'min'])
     args = parser.parse_args()
 
     if args.nni:

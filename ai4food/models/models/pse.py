@@ -46,7 +46,7 @@ class PixelSetEncoder(nn.Module):
         if self.with_extra:
             self.name += 'Extra'
             inter_dim += self.extra_size
-
+       
         assert (input_dim == mlp1[0])
         assert (inter_dim == mlp2[0])
         # Feature extraction
@@ -77,7 +77,7 @@ class PixelSetEncoder(nn.Module):
         shape Batch_size x Sequence length x Embedding dimension
         """
         a, b = input
-        if len(a) == 2:
+        if len(a) == 2: # extra features included
             out, mask = a
             extra = b
             if len(extra) == 2:
