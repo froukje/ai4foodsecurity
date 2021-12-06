@@ -24,3 +24,4 @@ ai4food/models/models/__pycache__/*
 images/*
 nni/*
 jobs/*
+run_test.sh
