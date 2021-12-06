@@ -25,3 +25,4 @@ images/*
 nni/*
 jobs/*
 run_test.sh
+*.pyc
