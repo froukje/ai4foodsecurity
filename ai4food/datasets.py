@@ -24,6 +24,7 @@ class EarthObservationDataset(Dataset):
         ### for now only - remove when we have proper path to sentinel-1 data
         if args.input_data[0]=='sentinel-1':
             self.h5_file = h5py.File(f'../../s1_extracted/{args.split}_data.h5', 'r')
+            #self.h5_file = h5py.File(f'/swork/christina/s1_extracted/{args.split}_data.h5', 'r')
         else:
             self.h5_file = h5py.File(os.path.join(args.dev_data_dir, args.input_data[0], args.input_data_type, f'{args.split}_data.h5'), 'r')
 

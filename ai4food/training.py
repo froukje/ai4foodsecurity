@@ -307,6 +307,9 @@ def get_pselatae_model_config(args, verbose=False):
     
     else:
     
+        if include_extras: extra_size = 2
+        else: extra_size = 0
+        mlp2_first_layer = args.mlp1_out*2 + extra_size#128 + extra_size
         config = {
                 # Number of neurons in the layers of MLP1
                 'mlp1-planet': [args.input_dim[0],32,64],    
