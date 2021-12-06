@@ -100,13 +100,13 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
             # for combined model - current implementation w/o extra features
             elif len(args.input_data)>1:
                 sample_planet, sample_s1 = batch
-                for i in range(len(sample_planet)):
-                    sample_planet[i] = sample_planet[i].to(device)
-                    sample_s1[i] = sample_s1[i].to(device)
+                #for i in range(len(sample_planet)):
+                #    sample_planet[i] = sample_planet[i].to(device)
+                #    sample_s1[i] = sample_s1[i].to(device)
                 
                 (x_p, mask_p, _), y_true = sample_planet
                 (x_s1, mask_s1, _), _ = sample_s1
-                logprobs = model(((x_p, mask_p), (x_s1, mask_s1)))
+                logprobs = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
             
             # for spatiotemporal models
             else:
@@ -154,13 +154,13 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
                 # for combined model - current implementation wo extra features
                 elif len(args.input_data)>1:
                     sample_planet, sample_s1 = batch
-                    for i in range(len(sample_planet)):
-                        sample_planet[i] = sample_planet[i].to(device)
-                        sample_s1[i] = sample_s1[i].to(device)
+                    #for i in range(len(sample_planet)):
+                    #    sample_planet[i] = sample_planet[i].to(device)
+                    #    sample_s1[i] = sample_s1[i].to(device)
 
                     (x_p, mask_p, field_id), y_true = sample_planet
                     (x_s1, mask_s1, _), y_true = sample_s1
-                    logprobs = model(((x_p, mask_p), (x_s1, mask_s1)))
+                    logprobs = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
                 # for spatiotemporal models
                 else:
                     (x, mask, field_id), y_true = batch
