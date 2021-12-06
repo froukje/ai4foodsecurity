@@ -114,9 +114,10 @@ def main(args):
     print(f'\nDevice {device}')
 
     # Initialize model optimizer and loss criterion:
-    optimizer = Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
-    weights_for_samples = torch.Tensor(weights_for_samples).to(device)
-    criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="mean")
+    if args.split == 'train':
+        optimizer = Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
+        weights_for_samples = torch.Tensor(weights_for_samples).to(device)
+        criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="mean")
     #criterion = nn.NLLLoss(reduction='sum')
 
     # training
