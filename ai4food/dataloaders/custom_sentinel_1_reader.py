@@ -75,9 +75,9 @@ class S1Reader(Dataset):
         npyfile = os.path.join(self.npyfolder, "fid_{}.npz".format(feature.fid))
         if os.path.exists(npyfile): # use saved numpy array if already created
             try:
-                object = np.load(npyfile)
-                image_stack = object["image_stack"]
-                mask = object["mask"]
+                obj = np.load(npyfile)
+                image_stack = obj["image_stack"]
+                mask = obj["mask"]
             except zipfile.BadZipFile:
                 print("ERROR: {} is a bad zipfile...".format(npyfile))
                 return None
@@ -157,15 +157,15 @@ class S1Reader(Dataset):
                 left, bottom, right, top = feature.geometry.bounds
                 window = rio.windows.from_bounds(left, bottom, right, top, transform)
 
-                row_start = round(window.row_off)
+                row_start = max(0, round(window.row_off)) # if field extends beyond area
                 row_end = round(window.row_off) + round(window.height)
-                col_start = round(window.col_off)
+                col_start = max(0, round(window.col_off))
                 col_end = round(window.col_off) + round(window.width)
 
                 image_stack = bands[:, :,row_start:row_end, col_start:col_end]
-                mask = fid_mask[row_start:row_end, col_start:col_end]
-                mask[mask != feature.fid] = 0
-                mask[mask == feature.fid] = 1
+                mask = fid_mask[row_start:row_end, col_start:col_end] == feature.fid
+                #mask[mask != feature.fid] = 0
+                #mask[mask == feature.fid] = 1
                 os.makedirs(npyfolder, exist_ok=True)
                 np.savez(npyfile, image_stack=image_stack.astype(np.float32), mask=mask.astype(np.float32), feature=feature.drop("geometry").to_dict())
 
