@@ -264,12 +264,12 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
         # temporary fix for class mismatch
         
         # swap 1s and 4s
-        crop_ids = output_frame['crop_id']
-        crop_ids = np.array(crop_ids)
-        crop_ids[crop_ids==1] = 100
-        crop_ids[crop_ids==4] = 1
-        crop_ids[crop_ids==100] = 4
-        output_frame['crop_id'] = crop_ids.astype(np.uint8)
+        #crop_ids = output_frame['crop_id']
+        #crop_ids = np.array(crop_ids)
+        #crop_ids[crop_ids==1] = 100
+        #crop_ids[crop_ids==4] = 1
+        #crop_ids[crop_ids==100] = 4
+        #output_frame['crop_id'] = crop_ids.astype(np.uint8)
         # swap Wheat and Lucerne/Medics
         output_frame['crop_name']=output_frame['crop_name'].str.replace('Wheat', 'blabla')
         output_frame['crop_name']=output_frame['crop_name'].str.replace('Lucerne/Medics', 'Wheat')
@@ -352,12 +352,12 @@ def save_predictions_majority(target_dir, model, data_loader, device, label_ids,
     output_frame = pd.DataFrame.from_dict(output_list)
     # ____________________temporary fix for class mismatch________________________
     # swap 1s and 4s
-    crop_ids = output_frame['crop_id']
-    crop_ids = np.array(crop_ids)
-    crop_ids[crop_ids==1] = 100
-    crop_ids[crop_ids==4] = 1
-    crop_ids[crop_ids==100] = 4
-    output_frame['crop_id'] = crop_ids.astype(np.uint8)
+    #crop_ids = output_frame['crop_id']
+    #crop_ids = np.array(crop_ids)
+    #crop_ids[crop_ids==1] = 100
+    #crop_ids[crop_ids==4] = 1
+    #crop_ids[crop_ids==100] = 4
+    #output_frame['crop_id'] = crop_ids.astype(np.uint8)
     # swap Wheat and Lucerne/Medics
     output_frame['crop_name']=output_frame['crop_name'].str.replace('Wheat', 'blabla')
     output_frame['crop_name']=output_frame['crop_name'].str.replace('Lucerne/Medics', 'Wheat')
