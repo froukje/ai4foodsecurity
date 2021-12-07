@@ -103,8 +103,8 @@ def main(args):
             train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
             val_subsampler = torch.utils.data.SubsetRandomSampler(val_ids)
 
-            train_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=8, drop_last=True, sampler=train_subsampler)
-            valid_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=8, drop_last=True, sampler=val_subsampler)
+            train_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, drop_last=True, sampler=train_subsampler)
+            valid_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, drop_last=True, sampler=val_subsampler)
 
             print('Size of train loader: ', len(train_loader), 'and val loader: ', len(valid_loader))
             if len(args.input_data)==1:
@@ -126,7 +126,7 @@ def main(args):
                 if args.use_pselatae:
                     model = PseLTae(**model_config)  #PseTae(**model_config) # 
                 else:
-                    if len(args.input_dim)==1:
+                    if isinstance(args.input_dim, list):
                         args.input_dim = args.input_dim[0]
                     model = SpatiotemporalModel(input_dim=args.input_dim, num_classes=len(label_ids), sequencelength=args.sequence_length, spatial_backbone=args.spatial_backbone, temporal_backbone=args.temporal_backbone, device=device)
             else: model = PseLTaeCombined(**model_config)
