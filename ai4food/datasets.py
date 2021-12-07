@@ -135,7 +135,9 @@ class PlanetDataset(EarthObservationDataset):
         #print(X.shape) #(4143, 244, 4, 64)
         nir = X[:, :, 3, :] # X[:, 3]
         red = X[:, :, 2, :] # X[:, 2]
-        return (nir - red) / (nir + red)
+        ndvi = (nir - red) / (nir + red)
+        ndvi = np.nan_to_num(ndvi)
+        return ndvi
 
 
     
