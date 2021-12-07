@@ -28,6 +28,7 @@ class EarthObservationDataset(Dataset):
         self.mask = self.h5_file['mask'][:].astype(bool)
         self.fid = self.h5_file['fid'][:]
         self.labels = self.h5_file['label'][:]
+        self.labels = self.labels - 1 # generated datafiles with classes from 1 ... k --> 0 ... k-1
         
         if args.include_extras:
             labels_path='/work/ka1176/shared_data/2021-ai4food/labels_combined.geojson' # when moved to data dir change to os.path.join(data_dir,'labels_combined.geojson')
