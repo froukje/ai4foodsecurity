@@ -92,10 +92,7 @@ class PlanetReader(Dataset):
         if self.selected_time_points is not None:
             image_stack = image_stack[self.selected_time_points]
 
-        if self.crop_ids is not None:
-            label = self.crop_ids.index(feature.crop_id)
-        else:
-            label = feature.crop_id
+        label = feature.crop_id
 
         return image_stack, label, mask, feature.fid, feature.crop_name
 
