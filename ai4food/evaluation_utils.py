@@ -229,12 +229,12 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
                     # for combined model - current implementation wo extra features
                     elif len(args.input_data)>1:
                         sample_planet, sample_s1 = batch
-                        for i in range(len(sample_planet)):
-                            sample_planet[i] = sample_planet[i].to(device)
-                            sample_s1[i] = sample_s1[i].to(device)
+                        #for i in range(len(sample_planet)):
+                        #    sample_planet[i] = sample_planet[i].to(device)
+                        #    sample_s1[i] = sample_s1[i].to(device)
                         (x_p, mask_p, fid), _ = sample_planet
                         (x_s1, mask_s1, _), _ = sample_s1
-                        logits = model(((x_p, mask_p), (x_s1, mask_s1)))
+                        logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
                     # for spatiotemporal model
                     else:
                         (x, mask, fid), _ = batch
