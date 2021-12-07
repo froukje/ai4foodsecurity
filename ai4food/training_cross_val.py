@@ -77,7 +77,14 @@ def main(args):
         print(frequencies)
         
         no_of_classes = unique.shape[0]
-        weights_for_samples = 1/frequencies[:,1]
+
+        if args.sample_weights == 'uniform':
+            weights_for_samples = np.repeat(1, len(frequencies))
+        elif args.sample_weights == 'inverse':
+            weights_for_samples = 1/frequencies[:,1]
+        elif args.sample_weights == 'inverse-sqrt':
+            weights_for_samples = 1/np.sqrt(frequencies[:,1])
+
         weights_for_samples = weights_for_samples/np.sum(weights_for_samples)*no_of_classes 
         weights_for_samples = torch.Tensor(weights_for_samples).to(device) 
         criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="mean") 
@@ -134,7 +141,7 @@ def main(args):
             if torch.cuda.is_available():
                 model = model.cuda()   
             # Initialize model optimizer and loss criterion:
-            optimizer = Adam(model.parameters(), lr=1e-3, weight_decay=1e-6)
+            optimizer = Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
 
             for epoch in range(args.max_epochs):
                 # train
@@ -376,6 +383,10 @@ if __name__ == '__main__':
     parser.add_argument('--n-head', type=int, default=16)
     parser.add_argument('--d-k', type=int, default=8)
     parser.add_argument('--dropout', type=float, default=0.2)
+    parser.add_argument('--learning-rate', type=float, default=1e-3, help='In Adam optimizer')
+    parser.add_argument('--weight-decay', type=float, default=1e-6, help='In Adam optimizer')
+    parser.add_argument('--sample-weights', type=str, choices=['uniform', 'inverse', 'inverse-sqrt'], default='uniform', 
+                           help='Sample weight strategy')
     args = parser.parse_args()
 
     if args.nni:
