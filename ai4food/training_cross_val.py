@@ -12,7 +12,6 @@ import h5py
 from evaluation_utils import metrics, train_epoch, validation_epoch, save_predictions, save_reference, save_predictions_majority
 
 sys.path.append('../notebooks/starter_files/')
-from utils.data_transform import PlanetTransform
 from baseline_models import SpatiotemporalModel
 
 path_to_pseltae = "models"
@@ -127,6 +126,8 @@ def main(args):
                 if args.use_pselatae:
                     model = PseLTae(**model_config)  #PseTae(**model_config) # 
                 else:
+                    if len(args.input_dim)==1:
+                        args.input_dim = args.input_dim[0]
                     model = SpatiotemporalModel(input_dim=args.input_dim, num_classes=len(label_ids), sequencelength=args.sequence_length, spatial_backbone=args.spatial_backbone, temporal_backbone=args.temporal_backbone, device=device)
             else: model = PseLTaeCombined(**model_config)
 
