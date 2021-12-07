@@ -113,7 +113,7 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
                 (x, mask, _), y_true = batch
                 if args.use_pselatae: logprobs = model((x.to(device), mask.to(device)))
                 else: logprobs = model(x.to(device))
-                
+
             y_true = y_true.to(device)
 
             eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
@@ -199,11 +199,14 @@ def save_reference(data_loader, device, label_ids, label_names, args):
     #  save reference into output json:
     if args.split == 'train':
         output_name = os.path.join(args.target_dir, 'reference_val.json')
-        print(f'Reference for validation was saved to location: {(output_name)}')
         output_frame = pd.DataFrame.from_dict(output_list)
         output_frame.to_json(output_name)
+        print(f'Reference for validation was saved to location: {(output_name)}')
     else:
-        print(f'No reference was saved')
+        output_name = os.path.join(args.target_dir, 'reference_test.json')
+        output_frame = pd.DataFrame.from_dict(output_list)
+        output_frame.to_json(output_name)
+        print(f'Reference for test was saved to location: {(output_name)}')
 
 
 def save_predictions(save_model_path, model, data_loader, device, label_ids, label_names, args):
@@ -305,23 +308,25 @@ def save_predictions_majority(target_dir, model, data_loader, device, label_ids,
                         
                         if args.use_pselatae and args.include_extras:
                             (x, mask, fid, extra_features), _ = batch
+                            batch_s = x.size(0)
                             logits = model(((x.to(device), mask.to(device)), extra_features.to(device)))
                         # for combined model - current implementation wo extra features
-                        elif args.input_data>1:
+                        elif len(args.input_data)>1:
                             sample_planet, sample_s1 = batch
-                            for i in range(len(sample_planet)):
-                                sample_planet[i] = sample_planet[i].to(device)
-                                sample_s1[i] = sample_s1[i].to(device)
+                            #for i in range(len(sample_planet)):
+                            #    sample_planet[i] = sample_planet[i].to(device)
+                            #    sample_s1[i] = sample_s1[i].to(device)
                             (x_p, mask_p, fid), _ = sample_planet
                             (x_s1, mask_s1, _), _ = sample_s1
-                            logits = model(((x_p, mask_p), (x_s1, mask_s1)))
+                            batch_s = x_p.size(0)
+                            logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
                         # for spatiotemporal model
                         else:
                             (x, mask, fid), _ = batch
+                            batch_s = x.size(0)
                             if args.use_pselatae: logits = model((x.to(device), mask.to(device)))
                             else: logits = model(x.to(device))
                         
-                        batch_s = x.size(0)
                         
                         for i in range(logits.size()[0]):
                             logits_i = logits[i].view(1,-1)
