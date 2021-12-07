@@ -12,7 +12,6 @@ import h5py
 from evaluation_utils import metrics, train_epoch, validation_epoch, save_predictions, save_reference, save_predictions_majority
 
 sys.path.append('../notebooks/starter_files/')
-from utils.data_transform import PlanetTransform
 from baseline_models import SpatiotemporalModel
 
 path_to_pseltae = "models"
@@ -77,7 +76,6 @@ def main(args):
         frequencies = np.asarray((unique, counts)).T
         print(frequencies)
         
-        (unique, counts) = np.unique(test_dataset[:][1], return_counts=True)
         no_of_classes = unique.shape[0]
         weights_for_samples = 1/frequencies[:,1]
         weights_for_samples = weights_for_samples/np.sum(weights_for_samples)*no_of_classes 
@@ -109,11 +107,17 @@ def main(args):
             valid_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=8, drop_last=True, sampler=val_subsampler)
 
             print('Size of train loader: ', len(train_loader), 'and val loader: ', len(valid_loader))
-            (unique, counts) = np.unique(test_dataset[train_ids][:][1], return_counts=True)
+            if len(args.input_data)==1:
+                (unique, counts) = np.unique(test_dataset[train_ids][1], return_counts=True)
+            else:
+                (unique, counts) = np.unique(test_dataset[train_ids][0][1], return_counts=True)
             frequencies = np.asarray((unique, counts)).T
             print('Labels in train: ',frequencies)
 
-            (unique, counts) = np.unique(test_dataset[val_ids][:][1], return_counts=True)
+            if len(args.input_data)==1:
+                (unique, counts) = np.unique(test_dataset[val_ids][1], return_counts=True)
+            else:
+                (unique, counts) = np.unique(test_dataset[val_ids][0][1], return_counts=True)
             frequencies = np.asarray((unique, counts)).T
             print('Labels in validation: ',frequencies)
 
@@ -122,6 +126,8 @@ def main(args):
                 if args.use_pselatae:
                     model = PseLTae(**model_config)  #PseTae(**model_config) # 
                 else:
+                    if len(args.input_dim)==1:
+                        args.input_dim = args.input_dim[0]
                     model = SpatiotemporalModel(input_dim=args.input_dim, num_classes=len(label_ids), sequencelength=args.sequence_length, spatial_backbone=args.spatial_backbone, temporal_backbone=args.temporal_backbone, device=device)
             else: model = PseLTaeCombined(**model_config)
 
