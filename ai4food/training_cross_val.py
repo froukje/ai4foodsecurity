@@ -322,7 +322,7 @@ def get_paselatae_model_config(args, verbose=False):
                 'geomfeat': include_extras,  
                 }
 
-        model_config = dict(input_dim=args.input_dim[0]+args.ndvi, 
+        model_config = dict(input_dim=args.input_dim[0], 
                 mlp1=config['mlp1'], pooling=config['pooling'],
                 mlp2=config['mlp2'], n_head=config['n_head'], 
                 d_k=config['d_k'], mlp3=config['mlp3'],
@@ -368,7 +368,7 @@ def get_paselatae_model_config(args, verbose=False):
                 'geomfeat': include_extras,  
                 }
 
-        model_config = dict(input_dim_planet=args.input_dim[0]+args.ndvi, 
+        model_config = dict(input_dim_planet=args.input_dim[0], 
                 input_dim_s1=args.input_dim[1]+args.ndvi, 
                 mlp1_planet=config['mlp1-planet'], 
                 mlp1_s1=config['mlp1-s1'], 
