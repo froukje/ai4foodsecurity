@@ -244,7 +244,8 @@ def main(args):
     # make predictions   
     if args.save_preds:
         if args.split == 'train':
-            test_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
+            test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
+            print(f'\nINFO: saving predictions from the {args.split} set')
             save_predictions(save_model_path, model, test_loader, device, label_ids, label_names, args)
 
         else:
@@ -256,7 +257,7 @@ def main(args):
     # save reference
     if args.save_ref:
         if args.split == 'train':
-            test_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
+            test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
         else:
             test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
         print(f'\nINFO: saving reference from the {args.split} set')
