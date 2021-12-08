@@ -293,7 +293,7 @@ def get_paselatae_model_config(args, verbose=False):
             lms = 41
         config = {
                  # Number of neurons in the layers of MLP1
-                'mlp1': [args.input_dim[0]+args.ndvi,args.mlp1_in,args.mlp1_out],    
+                'mlp1': [args.input_dim[0],args.mlp1_in,args.mlp1_out],    
                  # Pixel-embeddings pooling strategy
                 'pooling': 'mean_std',  
                  # Number of neurons in the layers of MLP2
@@ -333,9 +333,9 @@ def get_paselatae_model_config(args, verbose=False):
     
         config = {
                  # Number of neurons in the layers of MLP1
-                'mlp1-planet': [args.input_dim[0]+args.ndvi,args.mlp1_in,args.mlp1_out],   
-                 # Number of neurons in the layers of MLP1
-                'mlp1-s1': [args.input_dim[1]+args.ndvi,args.mlp1_s1_in,args.mlp1_s1_out],   
+                'mlp1-planet': [args.input_dim[0],args.mlp1_in,args.mlp1_out],   
+                 # Number of neurons in the layers of MiLP1
+                'mlp1-s1': [args.input_dim[1], args.mlp1_s1_in,args.mlp1_s1_out],   
                  # Pixel-embeddings pooling strategy
                 'pooling': 'mean_std',  
                  # Number of neurons in the layers of MLP2
