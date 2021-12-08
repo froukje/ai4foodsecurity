@@ -53,6 +53,7 @@ class EOTransformer():
                 good_pixel_ixs = np.where(mask>0)[0]
                 if len(good_pixel_ixs)!=0:
                     if len(good_pixel_ixs) < self.random_extraction:  # too few pixels - need to resample
+                        print('too few pixels - need to resample')
                         sel_ixs = np.random.choice(len(good_pixel_ixs), size=self.random_extraction, replace=True)
                     else:
                         sel_ixs = np.random.choice(len(good_pixel_ixs), size=self.random_extraction, replace=False)

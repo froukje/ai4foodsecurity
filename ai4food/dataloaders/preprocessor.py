@@ -254,7 +254,7 @@ class Preprocessor(object):
                                         'ref_fusion_competition_south_africa_test_source_sentinel_2_34S_20E_259N_2017')
 
                 self.time_size_train = 76 # time steps available
-                self.band_size = 12 # bands available
+                self.band_size = 13 # bands available
 
             # this is the same for all south-africa sources
             self.train_sources = [train_dir_1, train_dir_2]
@@ -294,7 +294,7 @@ class Preprocessor(object):
 
                 self.time_size_train = 144 # time steps available
                 self.time_size_test  = 144
-                self.band_size = 12 # bands available
+                self.band_size = 13 # bands available
 
             # this is the same for all germany sources
             # for compatibility with the south-africa processing, keep these as lists
@@ -349,7 +349,7 @@ class Preprocessor(object):
                                         label_ids=label_ids,
                                         transform=transform.transform,
                                         min_area_to_ignore=min_area_to_ignore,
-                                        include_cloud=False, # do not change
+                                        include_cloud=True, # do not change
                                         overwrite=overwrite,
                                         n_processes=n_processes)
 
