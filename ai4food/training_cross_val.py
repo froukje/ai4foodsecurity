@@ -427,7 +427,7 @@ if __name__ == '__main__':
     parser.add_argument('--include-extras', type=int, default=0, choices=[0, 1])
     parser.add_argument('--learning-rate', type=float, default=1e-3, help='In Adam optimizer')
     parser.add_argument('--weight-decay', type=float, default=1e-6, help='In Adam optimizer')
-    parser.add_argument('--sample-weights', type=str, choices=['uniform', 'inverse', 'inverse-sqrt'], default='uniform', 
+    parser.add_argument('--sample-weights', type=str, choices=['uniform', 'inverse', 'inverse-sqrt'], default='inverse',
                            help='Sample weight strategy')
     parser.add_argument('--n-head', type=int, default=16)
     parser.add_argument('--d-k', type=int, default=8)
