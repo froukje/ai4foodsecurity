@@ -369,7 +369,7 @@ def get_paselatae_model_config(args, verbose=False):
                 }
 
         model_config = dict(input_dim_planet=args.input_dim[0], 
-                input_dim_s1=args.input_dim[1]+args.ndvi, 
+                input_dim_s1=args.input_dim[1], 
                 mlp1_planet=config['mlp1-planet'], 
                 mlp1_s1=config['mlp1-s1'], 
                 pooling=config['pooling'],
