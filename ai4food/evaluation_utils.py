@@ -271,9 +271,9 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
         #crop_ids[crop_ids==100] = 4
         #output_frame['crop_id'] = crop_ids.astype(np.uint8)
         # swap Wheat and Lucerne/Medics
-        output_frame['crop_name']=output_frame['crop_name'].str.replace('Wheat', 'blabla')
-        output_frame['crop_name']=output_frame['crop_name'].str.replace('Lucerne/Medics', 'Wheat')
-        output_frame['crop_name']=output_frame['crop_name'].str.replace('blabla', 'Lucerne/Medics')
+        #output_frame['crop_name']=output_frame['crop_name'].str.replace('Wheat', 'blabla')
+        #output_frame['crop_name']=output_frame['crop_name'].str.replace('Lucerne/Medics', 'Wheat')
+        #output_frame['crop_name']=output_frame['crop_name'].str.replace('blabla', 'Lucerne/Medics')
 
         print(output_frame.tail())
         output_frame.to_json(output_name)
@@ -359,8 +359,8 @@ def save_predictions_majority(target_dir, model, data_loader, device, label_ids,
     #crop_ids[crop_ids==100] = 4
     #output_frame['crop_id'] = crop_ids.astype(np.uint8)
     # swap Wheat and Lucerne/Medics
-    output_frame['crop_name']=output_frame['crop_name'].str.replace('Wheat', 'blabla')
-    output_frame['crop_name']=output_frame['crop_name'].str.replace('Lucerne/Medics', 'Wheat')
-    output_frame['crop_name']=output_frame['crop_name'].str.replace('blabla', 'Lucerne/Medics')
+    #output_frame['crop_name']=output_frame['crop_name'].str.replace('Wheat', 'blabla')
+    #output_frame['crop_name']=output_frame['crop_name'].str.replace('Lucerne/Medics', 'Wheat')
+    #output_frame['crop_name']=output_frame['crop_name'].str.replace('blabla', 'Lucerne/Medics')
 
     output_frame.to_json(output_name)
