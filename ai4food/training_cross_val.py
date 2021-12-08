@@ -66,8 +66,11 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f'\nDevice {device}')
 
+    if args.nni:
+        k_best_metrics = [] # gather the k best metrics and then report the mean
+
     if args.split=='train':
-        
+
         print('Labels in train and valid / (test)')
         if len(args.input_data)==1:
             (unique, counts) = np.unique(test_dataset[:][1], return_counts=True)
@@ -209,7 +212,7 @@ def main(args):
 
             # nni
             if args.nni:
-                nni.report_final_result(best_metric)
+                k_best_metrics.append(best_metric)
 
             # save best model
             save_model_path = os.path.join(args.target_dir, f'best_model_fold_{fold}.pt') 
@@ -263,6 +266,14 @@ def main(args):
         print(f'\nINFO: saving reference from the {args.split} set')
         save_reference(test_loader, device, label_ids, label_names, args)
 
+    # report final nni result as the average of the best metrics
+    # across the k folds
+    if args.nni:
+        print('For NNI the k best metrics are', k_best_metrics)
+        mean_best_metrics = np.mean(k_best_metrics)
+        print('Will report mean of the best metrics to NNI:', mean_best_metrics)
+        nni.report_final_result(mean_best_metrics)
+
 
 def add_nni_params(args):
     args_nni = nni.get_next_parameter()
@@ -294,7 +305,7 @@ def get_paselatae_model_config(args, verbose=False):
             lms = 41
         config = {
                  # Number of neurons in the layers of MLP1
-                'mlp1': [args.input_dim[0]+args.ndvi,args.mlp1_in,args.mlp1_out],    
+                'mlp1': [args.input_dim[0],args.mlp1_in,args.mlp1_out],    
                  # Pixel-embeddings pooling strategy
                 'pooling': 'mean_std',  
                  # Number of neurons in the layers of MLP2
@@ -322,7 +333,7 @@ def get_paselatae_model_config(args, verbose=False):
                 'geomfeat': include_extras,  
                 }
 
-        model_config = dict(input_dim=args.input_dim[0]+args.ndvi, 
+        model_config = dict(input_dim=args.input_dim[0], 
                 mlp1=config['mlp1'], pooling=config['pooling'],
                 mlp2=config['mlp2'], n_head=config['n_head'], 
                 d_k=config['d_k'], mlp3=config['mlp3'],
@@ -334,9 +345,9 @@ def get_paselatae_model_config(args, verbose=False):
     
         config = {
                  # Number of neurons in the layers of MLP1
-                'mlp1-planet': [args.input_dim[0]+args.ndvi,args.mlp1_in,args.mlp1_out],   
+                'mlp1-planet': [args.input_dim[0],args.mlp1_in,args.mlp1_out],   
                  # Number of neurons in the layers of MLP1
-                'mlp1-s1': [args.input_dim[1]+args.ndvi,args.mlp1_s1_in,args.mlp1_s1_out],   
+                'mlp1-s1': [args.input_dim[1],args.mlp1_s1_in,args.mlp1_s1_out],   
                  # Pixel-embeddings pooling strategy
                 'pooling': 'mean_std',  
                  # Number of neurons in the layers of MLP2
@@ -368,8 +379,8 @@ def get_paselatae_model_config(args, verbose=False):
                 'geomfeat': include_extras,  
                 }
 
-        model_config = dict(input_dim_planet=args.input_dim[0]+args.ndvi, 
-                input_dim_s1=args.input_dim[1]+args.ndvi, 
+        model_config = dict(input_dim_planet=args.input_dim[0], 
+                input_dim_s1=args.input_dim[1], 
                 mlp1_planet=config['mlp1-planet'], 
                 mlp1_s1=config['mlp1-s1'], 
                 pooling=config['pooling'],
