@@ -47,8 +47,8 @@ class S2Reader(Dataset):
         :return: None
         '''
 
-        if include_cloud:
-            raise ValueError("Not implemented with transform: include_cloud = True")
+        #if include_cloud:
+        #    raise ValueError("Not implemented with transform: include_cloud = True")
 
         self.data_transform = transform
         self.selected_time_points=selected_time_points
