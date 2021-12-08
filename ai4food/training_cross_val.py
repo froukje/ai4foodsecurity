@@ -66,8 +66,11 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f'\nDevice {device}')
 
+    if args.nni:
+        k_best_metrics = [] # gather the k best metrics and then report the mean
+
     if args.split=='train':
-        
+
         print('Labels in train and valid / (test)')
         if len(args.input_data)==1:
             (unique, counts) = np.unique(test_dataset[:][1], return_counts=True)
@@ -209,7 +212,7 @@ def main(args):
 
             # nni
             if args.nni:
-                nni.report_final_result(best_metric)
+                k_best_metrics.append(best_metric)
 
             # save best model
             save_model_path = os.path.join(args.target_dir, f'best_model_fold_{fold}.pt') 
@@ -262,6 +265,14 @@ def main(args):
             test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
         print(f'\nINFO: saving reference from the {args.split} set')
         save_reference(test_loader, device, label_ids, label_names, args)
+
+    # report final nni result as the average of the best metrics
+    # across the k folds
+    if args.nni:
+        print('For NNI the k best metrics are', k_best_metrics)
+        mean_best_metrics = np.mean(k_best_metrics)
+        print('Will report mean of the best metrics to NNI:', mean_best_metrics)
+        nni.report_final_result(mean_best_metrics)
 
 
 def add_nni_params(args):
