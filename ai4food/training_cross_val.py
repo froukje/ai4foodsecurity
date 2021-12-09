@@ -89,6 +89,7 @@ def main(args):
             weights_for_samples = 1/np.sqrt(frequencies[:,1])
 
         weights_for_samples = weights_for_samples/np.sum(weights_for_samples)*no_of_classes 
+        print('Use sample weights', weights_for_samples)
         weights_for_samples = torch.Tensor(weights_for_samples).to(device) 
         criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="mean") 
         #criterion = nn.NLLLoss(reduction='sum')
@@ -186,7 +187,8 @@ def main(args):
                         valid_loss: {valid_loss:.4f}, eval_metric {valid_metric:.4}')
                 # nni
                 if args.nni:
-                    nni.report_intermediate_result(valid_metric)
+                    pass # do not report intermediate result here
+                    #nni.report_intermediate_result(valid_metric)
 
                 # early stopping
                 if valid_loss < best_loss:
@@ -213,6 +215,7 @@ def main(args):
             # nni
             if args.nni:
                 k_best_metrics.append(best_metric)
+                nni.report_intermediate_result(best_metric)
 
             # save best model
             save_model_path = os.path.join(args.target_dir, f'best_model_fold_{fold}.pt') 
