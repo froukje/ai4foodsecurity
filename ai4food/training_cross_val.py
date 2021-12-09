@@ -132,7 +132,7 @@ def main(args):
             frequencies = np.asarray((unique, counts)).T
             print('Labels in validation: ',frequencies)
 
-            # instatiate the model
+            # instantiate the model
             if len(args.input_data)==1:
                 if args.use_pselatae:
                     model = PseLTae(**model_config)  #PseTae(**model_config) # 
@@ -362,7 +362,7 @@ def get_paselatae_model_config(args, verbose=False):
                  # Number of neurons in the layers of MLP3
                 'mlp3_planet': [args.n_head*args.factor, args.mlp3_out],    
                  # Number of neurons in the layers of MLP3
-                'mlp3_s1': [args.n_head*args.factor, args.mlp3_s1_out],    
+                'mlp3_s1': [args.n_head*args.factor, int(args.scale*args.mlp3_s1_out)],    
                  # Dropout probability
                 'dropout': args.dropout,         
                  # Maximum period for the positional encoding
@@ -374,7 +374,7 @@ def get_paselatae_model_config(args, verbose=False):
                 'positions': 'bespoke',    
                  # Number of neurons in the layers of MLP4
                  #'mlp4': [128+64, 64, 32, 5],
-                 'mlp4': [args.mlp3_out+args.mlp3_s1_out, args.mlp4_1, args.mlp4_2, 5],
+                 'mlp4': [args.mlp3_out+int(args.scale*args.mlp3_s1_out), args.mlp4_1, args.mlp4_2, 5],
                  # size of the embeddings (E), if input vectors are of a different size, 
                  # a linear layer is used to project them to a d_model-dimensional space
                 'd_model': args.n_head*args.factor,             
@@ -456,6 +456,7 @@ if __name__ == '__main__':
     parser.add_argument('--mlp4-1', type=int, default=64)
     parser.add_argument('--mlp4-2', type=int, default=32)
     parser.add_argument('--factor', type=int, default=16)
+    parser.add_argument('--scale', type=float, default=0.5)
     # pool only working for default value!
     parser.add_argument('--pool', type=str, default='mean_std', choices=['mean_std', 'mean', 'std', 'max', 'min'])
     args = parser.parse_args()

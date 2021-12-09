@@ -9,9 +9,9 @@ ai4food/.ipynb_checkpoints/
 ai4food/models/models/__pycache__/
 ai4food/dataloaders/.ipynb_checkpoints/
 notebooks/starter_files/utils/__pycache__/
-ai4food/best_model.pt
-ai4food/train_losses.txt
-ai4food/valid_losses.txt
+ai4food/best_model*
+ai4food/train_losses*
+ai4food/valid_losses*
 ai4food/validation.json
 ai4food/submission.json
 ai4food/submission_val.json
