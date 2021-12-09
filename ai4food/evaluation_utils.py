@@ -90,7 +90,7 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
     model.train()
     losses = list()
     eval_metrics = list()
-    with tqdm(enumerate(dataloader), total=len(dataloader),position=0, leave=True) as iterator:
+    with tqdm(enumerate(dataloader), total=len(dataloader),position=0, leave=True, disable=True) as iterator:
         for idx, batch in iterator:
             optimizer.zero_grad()
             
@@ -145,7 +145,7 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
         y_pred_list = list()
         y_score_list = list()
         field_ids_list = list()
-        with tqdm(enumerate(dataloader), total=len(dataloader), position=0, leave=True) as iterator:
+        with tqdm(enumerate(dataloader), total=len(dataloader), position=0, leave=True, disable=True) as iterator:
             for idx, batch in iterator:
                
                 if args.use_pselatae and args.include_extras:
@@ -185,7 +185,7 @@ def save_reference(data_loader, device, label_ids, label_names, args):
     output_list=[]
 
     with torch.no_grad():
-        with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
+        with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True, disable=True) as iterator:
             for idx, batch in iterator:
                 if len(args.input_data)>1: batch=batch[0]
                 if args.include_extras: (_, _, fid,_), y_true = batch
@@ -223,7 +223,7 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
         softmax=torch.nn.Softmax(dim=1)
 
         with torch.no_grad():
-            with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
+            with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True, disable=True) as iterator:
                 for idx, batch in iterator:
                     
                     if args.use_pselatae and args.include_extras:
@@ -303,7 +303,7 @@ def save_predictions_majority(target_dir, model, data_loader, device, label_ids,
             output_list=[]
 
             with torch.no_grad():
-                with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
+                with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True, disable=True) as iterator:
                     for idx, batch in iterator:
                         
                         if args.use_pselatae and args.include_extras:
