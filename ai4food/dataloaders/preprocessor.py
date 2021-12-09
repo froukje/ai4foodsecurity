@@ -126,7 +126,7 @@ class Preprocessor(object):
 
         Preprocessor.create_hdf5(raw_ds, 
                                  self.keys, 
-                                 self.time_size_train, 
+                                 self.time_size_test, 
                                  self.band_size, 
                                  self.custom_transform, 
                                  self.custom_size, 
