@@ -155,6 +155,10 @@ class CombinedDataset(Dataset):
                 args.input_data = ['planet']
                 planet_dataset = PlanetDataset(args)
                 self.datasets.append(planet_dataset)
+            elif input_data=='planet-5':
+                args.input_data = ['planet-5']
+                planet5_dataset = PlanetDataset(args)
+                self.datasets.append(planet5_dataset)
             elif input_data=='sentinel-1':
                 args.input_data = ['sentinel-1']
                 sentinel1_dataset = Sentinel1Dataset(args)

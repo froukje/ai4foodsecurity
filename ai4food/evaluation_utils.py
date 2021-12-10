@@ -62,8 +62,8 @@ def bin_cross_entr_each_crop(logprobs, y_true, classes, device, args):
     y_prob = sm(logprobs)
     # convert to one-hot representation
     y_prob_ids = torch.argmax(y_prob, dim=1)
-    y_pred_onehot = nn.functional.one_hot(y_prob_ids, num_classes=5).float()
-    y_true_onehot = nn.functional.one_hot(y_true, num_classes=5).float()
+    y_pred_onehot = nn.functional.one_hot(y_prob_ids, num_classes=args.nr_classes).float()
+    y_true_onehot = nn.functional.one_hot(y_true, num_classes=args.nr_classes).float()
     #y_prob_clipped = torch.clip(y_pred_onehot, 1e-7, 1-1e-7)
     y_prob_clipped = torch.clip(y_prob, 1e-7, 1-1e-7)
     bin_ce = torch.tensor(bin_ce)
@@ -116,10 +116,10 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
 
             y_true = y_true.to(device)
 
-            eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
-            eval_metrics.append(eval_metric)
             loss = criterion(logprobs, y_true)
             loss.backward()
+            eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
+            eval_metrics.append(eval_metric)
             optimizer.step()
             iterator.set_description(f"train loss={loss:.2f}")
             losses.append(loss)
@@ -168,11 +168,11 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
                     else: logprobs = model(x.to(device))
                         
                 y_true = y_true.to(device)
-                eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
-                eval_metrics.append(eval_metric)
                 loss = criterion(logprobs, y_true.to(device))
                 iterator.set_description(f"valid loss={loss:.2f}")
                 losses.append(loss)
+                eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
+                eval_metrics.append(eval_metric)
                 y_true_list.append(y_true)
                 y_pred_list.append(logprobs.argmax(-1))
                 y_score_list.append(logprobs.exp())
@@ -350,6 +350,7 @@ def save_predictions_majority(target_dir, model, data_loader, device, label_ids,
     output_name = os.path.join(args.target_dir, 'submission.json')
     print(f'Submission was saved to location: {(output_name)}')
     output_frame = pd.DataFrame.from_dict(output_list)
+    print(output_frame.head())
     # ____________________temporary fix for class mismatch________________________
     # swap 1s and 4s
     #crop_ids = output_frame['crop_id']

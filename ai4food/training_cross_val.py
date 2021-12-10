@@ -57,8 +57,12 @@ def main(args):
     else:
         test_dataset = CombinedDataset(args) 
 
-    label_ids = [1, 2, 3, 4, 5]
-    label_names = ['Wheat', 'Barley', 'Canola', 'Lucerne/Medics', 'Small grain grazing']
+    if args.nr_classes == 5:
+        label_ids = [1, 2, 3, 4, 5]
+        label_names = ['Wheat', 'Barley', 'Canola', 'Lucerne/Medics', 'Small grain grazing']
+    if args.nr_classes == 9:
+        label_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        label_names =['Wheat', 'Rye', 'Barley', 'Oats', 'Corn', 'Oil', 'Seeds', 'Root', 'Crops', 'Meadows', 'Forage Crops']
     print(f'label_ids: {label_ids}')
     print(f'label_names: {label_names}\n')
 
@@ -114,8 +118,10 @@ def main(args):
             train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
             val_subsampler = torch.utils.data.SubsetRandomSampler(val_ids)
 
-            train_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, drop_last=True, sampler=train_subsampler)
-            valid_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, drop_last=True, sampler=val_subsampler)
+            train_loader = DataLoader(test_dataset, batch_size=args.batch_size, 
+                            num_workers=args.num_workers, drop_last=True, sampler=train_subsampler)
+            valid_loader = DataLoader(test_dataset, batch_size=args.batch_size, 
+                            num_workers=args.num_workers, drop_last=True, sampler=val_subsampler)
 
             print('Size of train loader: ', len(train_loader), 'and val loader: ', len(valid_loader))
             if len(args.input_data)==1:
@@ -299,13 +305,22 @@ def get_paselatae_model_config(args, verbose=False):
     else: extra_size = 0
     mlp2_first_layer = args.mlp1_out*2 + extra_size#128 + extra_size
     
+    if args.nr_classes == 5:
+        lms_planet = 244
+        lms_planet5 = 48
+        lms_sentinel1 = 41
+    if args.nr_classes == 9:
+        lms_planet = 365
+        lms_planet5 = 73
+        lms_sentinel1 = 122
+
     if len(args.input_data)==1:
         if args.input_data[0]=='planet':
-            lms = 244
+            lms = lms_planet
         elif args.input_data[0]=='planet-5':
-            lms = 48
+            lms = lms_planet5
         elif args.input_data[0]=='sentinel-1':
-            lms = 41
+            lms = lms_sentinel1
         config = {
                  # Number of neurons in the layers of MLP1
                 'mlp1': [args.input_dim[0],args.mlp1_in,args.mlp1_out],    
@@ -328,7 +343,7 @@ def get_paselatae_model_config(args, verbose=False):
                  # Positions to use for the positional encoding (bespoke / order)
                 'positions': 'bespoke',     
                  # Number of neurons in the layers of MLP4
-                'mlp4': [args.mlp3_out, args.mlp4_1, args.mlp4_2, 5],
+                'mlp4': [args.mlp3_out, args.mlp4_1, args.mlp4_2, args.nr_classes],
                  # size of the embeddings (E), if input vectors are of a different size, 
                  # a linear layer is used to project them to a d_model-dimensional space 
                 'd_model': args.n_head*args.factor,              
@@ -345,7 +360,11 @@ def get_paselatae_model_config(args, verbose=False):
                 positions=None, #dt.date_positions if config['positions'] == 'bespoke' else None,
                 mlp4=config['mlp4'], d_model=config['d_model'])
     else:
-    
+  
+        if args.input_data[0] == 'planet':
+            lms1 = lms_planet
+        if args.input_data[0] == 'planet-5':
+            lms1 = lms_planet5
         config = {
                  # Number of neurons in the layers of MLP1
                 'mlp1-planet': [args.input_dim[0],args.mlp1_in,args.mlp1_out],   
@@ -368,13 +387,13 @@ def get_paselatae_model_config(args, verbose=False):
                  # Maximum period for the positional encoding
                 'T':1000,               
                  # Maximum sequence length for positional encoding (only necessary if positions == order)    
-                'lms_planet':244,               
-                'lms_s1': 41,
+                'lms_planet': lms1,               
+                'lms_s1': lms_sentinel1,
                  # Positions to use for the positional encoding (bespoke / order)
                 'positions': 'bespoke',    
                  # Number of neurons in the layers of MLP4
                  #'mlp4': [128+64, 64, 32, 5],
-                 'mlp4': [args.mlp3_out+int(args.scale*args.mlp3_s1_out), args.mlp4_1, args.mlp4_2, 5],
+                 'mlp4': [args.mlp3_out+int(args.scale*args.mlp3_s1_out), args.mlp4_1, args.mlp4_2, args.nr_classes],
                  # size of the embeddings (E), if input vectors are of a different size, 
                  # a linear layer is used to project them to a d_model-dimensional space
                 'd_model': args.n_head*args.factor,             
@@ -457,6 +476,7 @@ if __name__ == '__main__':
     parser.add_argument('--mlp4-2', type=int, default=32)
     parser.add_argument('--factor', type=int, default=16)
     parser.add_argument('--scale', type=float, default=0.5)
+    parser.add_argument('--nr-classes', type=int, default=5)
     # pool only working for default value!
     parser.add_argument('--pool', type=str, default='mean_std', choices=['mean_std', 'mean', 'std', 'max', 'min'])
     args = parser.parse_args()
