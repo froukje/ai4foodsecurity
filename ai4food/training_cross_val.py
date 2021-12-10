@@ -280,9 +280,9 @@ def main(args):
     # across the k folds
     if args.nni:
         print('For NNI the k best metrics are', k_best_metrics)
-        mean_best_metrics = np.mean(k_best_metrics)
-        print('Will report mean of the best metrics to NNI:', mean_best_metrics)
-        nni.report_final_result(mean_best_metrics)
+        max_best_metrics = np.max(k_best_metrics)
+        print('Will report max of the best metrics to NNI:', max_best_metrics)
+        nni.report_final_result(max_best_metrics)
 
 
 def add_nni_params(args):
