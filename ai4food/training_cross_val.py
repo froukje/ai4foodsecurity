@@ -245,7 +245,7 @@ def main(args):
             if args.use_pselatae:
                 model = PseLTae(**model_config)  #PseTae(**model_config) # 
             else:
-                model = SpatiotemporalModel(input_dim=args.input_dim, num_classes=len(label_ids), sequencelength=args.sequence_length, spatial_backbone=args.spatial_backbone, temporal_backbone=args.temporal_backbone, device=device)
+                model = SpatiotemporalModel(input_dim=args.input_dim[0], num_classes=len(label_ids), sequencelength=args.sequence_length, spatial_backbone=args.spatial_backbone, temporal_backbone=args.temporal_backbone, device=device)
         else: model = PseLTaeCombined(**model_config)
 
         if torch.cuda.is_available():
