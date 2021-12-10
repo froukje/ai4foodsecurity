@@ -216,6 +216,7 @@ class PlanetReader(Dataset):
                     "WARNING: fid:{} image stack shape {} is zero in one dimension".format(feature.fid,image_stack.shape)
             except:
                 print('assertion failed', feature.fid)
+                print("WARNING: fid:{} image stack shape {} is zero in one dimension".format(feature.fid,image_stack.shape))
                 return None
 
             # rasterize polygon to get positions of field within crop

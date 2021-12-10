@@ -29,6 +29,10 @@ class EarthObservationDataset(Dataset):
         self.fid = self.h5_file['fid'][:]
         self.labels = self.h5_file['label'][:]
         self.labels = self.labels - 1 # generated datafiles with classes from 1 ... k --> 0 ... k-1
+
+        if np.sum(np.isnan(self.X)) > 0:
+            print('WARNING: Filled NaNs and INFs with 0 in ', os.path.join(args.dev_data_dir, args.input_data[0], args.input_data_type, f'{args.split}_data.h5'))
+            self.X = np.nan_to_num(self.X, nan=0, posinf=0, neginf=0)
         
         if args.include_extras:
             labels_path='/work/ka1176/shared_data/2021-ai4food/labels_combined.geojson' # when moved to data dir change to os.path.join(data_dir,'labels_combined.geojson')
