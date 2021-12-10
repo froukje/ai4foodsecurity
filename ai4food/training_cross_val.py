@@ -118,8 +118,10 @@ def main(args):
             train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
             val_subsampler = torch.utils.data.SubsetRandomSampler(val_ids)
 
-            train_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, drop_last=True, sampler=train_subsampler)
-            valid_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, drop_last=True, sampler=val_subsampler)
+            train_loader = DataLoader(test_dataset, batch_size=args.batch_size, 
+                            num_workers=args.num_workers, drop_last=True, sampler=train_subsampler)
+            valid_loader = DataLoader(test_dataset, batch_size=args.batch_size, 
+                            num_workers=args.num_workers, drop_last=True, sampler=val_subsampler)
 
             print('Size of train loader: ', len(train_loader), 'and val loader: ', len(valid_loader))
             if len(args.input_data)==1:
@@ -303,19 +305,22 @@ def get_paselatae_model_config(args, verbose=False):
     else: extra_size = 0
     mlp2_first_layer = args.mlp1_out*2 + extra_size#128 + extra_size
     
+    if args.nr_classes == 5:
+        lms_planet = 244
+        lms_planet5 = 48
+        lms_sentinel1 = 41
+    if args.nr_classes == 9:
+        lms_planet = 365
+        lms_planet5 = 73
+        lms_sentinel1 = 122
+
     if len(args.input_data)==1:
         if args.input_data[0]=='planet':
-            lms = 244
+            lms = lms_planet
         elif args.input_data[0]=='planet-5':
-            if args.nr_classes==5:
-                lms = 48
-            if args.nr_classes==9:
-                lms = 73
+            lms = lms_planet5
         elif args.input_data[0]=='sentinel-1':
-            if args.nr_classes==5:
-                lms = 41
-            if args.nr_classes==9:
-                lms = 122
+            lms = lms_sentinel1
         config = {
                  # Number of neurons in the layers of MLP1
                 'mlp1': [args.input_dim[0],args.mlp1_in,args.mlp1_out],    
@@ -355,7 +360,11 @@ def get_paselatae_model_config(args, verbose=False):
                 positions=None, #dt.date_positions if config['positions'] == 'bespoke' else None,
                 mlp4=config['mlp4'], d_model=config['d_model'])
     else:
-    
+  
+        if args.input_data[0] == 'planet':
+            lms1 = lms_planet
+        if args.input_data[0] == 'planet-5':
+            lms1 = lms_planet5
         config = {
                  # Number of neurons in the layers of MLP1
                 'mlp1-planet': [args.input_dim[0],args.mlp1_in,args.mlp1_out],   
@@ -378,8 +387,8 @@ def get_paselatae_model_config(args, verbose=False):
                  # Maximum period for the positional encoding
                 'T':1000,               
                  # Maximum sequence length for positional encoding (only necessary if positions == order)    
-                'lms_planet':244,               
-                'lms_s1': 41,
+                'lms_planet': lms1,               
+                'lms_s1': lms_sentinel1,
                  # Positions to use for the positional encoding (bespoke / order)
                 'positions': 'bespoke',    
                  # Number of neurons in the layers of MLP4
