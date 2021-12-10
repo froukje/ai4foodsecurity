@@ -28,6 +28,7 @@ class PseLTae(nn.Module):
                                            )
         self.decoder = get_decoder(mlp4)
         self.return_att = return_att
+        self.param_ratio()
 
     def forward(self, input):
         """
