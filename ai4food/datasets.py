@@ -87,7 +87,9 @@ class Sentinel2Dataset(EarthObservationDataset):
         nir = X[:, 7]
         red = X[:, 3]
 
-        return (nir - red) / (nir + red)
+        ndvi = (nir - red) / (nir + red)
+        ndvi = np.nan_to_num(ndvi)
+        return ndvi
 
 class Sentinel1Dataset(EarthObservationDataset):
     '''
@@ -107,6 +109,7 @@ class Sentinel1Dataset(EarthObservationDataset):
         dop = (VV/(VV+VH))
         m = 1 - dop
         radar_vegetation_index = (np.sqrt(dop))*((4*(VH))/(VV+VH))
+        radar_vegetation_index = np.nan_to_num(radar_vegetation_index)
         return radar_vegetation_index
 
 
@@ -160,7 +163,7 @@ class CombinedDataset(Dataset):
                 args.input_data = ['sentinel-2']
                 sentinel2_dataset = Sentinel2Dataset(args)
                 self.datasets.append(sentinel2_dataset)
-        args.input_data = input_data 
+        args.input_data = self.input_data 
         '''
         # this is necessary only when s1 and planet data samples don't match
         lengths0 = len(self.datasets[0])
