@@ -105,7 +105,7 @@ def main(args):
             print('----------------------------------------------')
             print(f'STARTING FOLD {fold}')
             print('----------------------------------------------')
-
+            
             # training
             best_loss = np.inf
             best_metric = np.inf
@@ -176,6 +176,7 @@ def main(args):
                                                                                 args, 
                                                                                 device=device)
                 valid_loss = valid_loss.cpu().detach().numpy()[0]
+                assert not np.isnan(valid_loss)
                 valid_metric = valid_metric.cpu().detach().numpy()[0]
                 all_valid_losses.append(valid_loss)
 
