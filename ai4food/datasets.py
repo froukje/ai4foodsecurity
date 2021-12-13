@@ -29,6 +29,10 @@ class EarthObservationDataset(Dataset):
         self.fid = self.h5_file['fid'][:]
         self.labels = self.h5_file['label'][:]
         self.labels = self.labels - 1 # generated datafiles with classes from 1 ... k --> 0 ... k-1
+
+        if np.sum(np.isnan(self.X)) > 0:
+            print('WARNING: Filled NaNs and INFs with 0 in ', os.path.join(args.dev_data_dir, args.input_data[0], args.input_data_type, f'{args.split}_data.h5'))
+            self.X = np.nan_to_num(self.X, nan=0, posinf=0, neginf=0)
         
         if args.include_extras:
             labels_path='/work/ka1176/shared_data/2021-ai4food/labels_combined.geojson' # when moved to data dir change to os.path.join(data_dir,'labels_combined.geojson')
@@ -92,7 +96,9 @@ class Sentinel2Dataset(EarthObservationDataset):
         nir = X[:, :, 7, :]
         red = X[:, :, 3, :]
 
-        return (nir - red) / (nir + red)
+        ndvi = (nir - red) / (nir + red)
+        ndvi = np.nan_to_num(ndvi)
+        return ndvi
 
 class Sentinel1Dataset(EarthObservationDataset):
     '''
@@ -115,6 +121,7 @@ class Sentinel1Dataset(EarthObservationDataset):
         dop = (VV/(VV+VH))
         m = 1 - dop
         radar_vegetation_index = (np.sqrt(dop))*((4*(VH))/(VV+VH))
+        radar_vegetation_index = np.nan_to_num(radar_vegetation_index)
         return radar_vegetation_index
 
 
@@ -165,8 +172,9 @@ class CombinedDataset(Dataset):
                 self.datasets.append(planet_dataset)
             elif input_data=='planet-5':
                 args.input_data = ['planet-5']
-                planet_dataset = PlanetDataset(args)
-                self.datasets.append(planet_dataset)
+                planet5_dataset = PlanetDataset(args)
+                self.datasets.append(planet5_dataset)
+
             elif input_data=='sentinel-1':
                 args.input_data = ['sentinel-1']
                 sentinel1_dataset = Sentinel1Dataset(args)
@@ -176,7 +184,6 @@ class CombinedDataset(Dataset):
                 sentinel2_dataset = Sentinel2Dataset(args)
                 self.datasets.append(sentinel2_dataset)
         args.input_data = self.input_data 
-
         for i in range(1, len(self.datasets)):
             assert (self.datasets[i-1].fid==self.datasets[i].fid).all(),'s1, s2 and/or planet not sorted correctly'
     

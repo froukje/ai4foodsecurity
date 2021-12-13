@@ -64,10 +64,15 @@ class EOTransformer():
                     mask = pixel_ix # return the pixels we used
                 
                 else:
-                    print('WARNING: No good pixels. Will provide image regardless. Image stack dimension', image_stack_shape)
-                    sel_ixs = np.random.choice(len(mask), size=self.random_extraction)
-                    image_stack = image_stack[:, :, sel_ixs]
-                    mask = np.array([-1] * self.random_extraction)
+                    if len(mask) == 0:
+                        print('WARNING: No pixels. Will provide image regardless. Image stack dimension', image_stack_shape)
+                        image_stack = np.zeros([image_stack_shape[0], image_stack_shape[1], self.random_extraction])
+                        mask = np.array([-1] * self.random_extraction)
+                    else:
+                        print('WARNING: No good pixels. Will provide image regardless. Image stack dimension', image_stack_shape)
+                        sel_ixs = np.random.choice(len(mask), size=self.random_extraction)
+                        image_stack = image_stack[:, :, sel_ixs]
+                        mask = np.array([-1] * self.random_extraction)
 
         else:  # crop/pad image to fixed size + augmentations: T, D, H, W = image_stack.shape
             if image_stack.shape[2] >= self.image_size and image_stack.shape[3] >= self.image_size:

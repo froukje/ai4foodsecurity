@@ -117,6 +117,7 @@ class PseLTaeCombinedPlanetS1(nn.Module):
                                            )
         self.decoder = get_decoder(mlp4)
         self.return_att = return_att
+        self.param_ratio()
 
     def forward(self, input):
         """
@@ -148,14 +149,18 @@ class PseLTaeCombinedPlanetS1(nn.Module):
 
     def param_ratio(self):
         total = get_ntrainparams(self)
-        s = get_ntrainparams(self.spatial_encoder)
-        t = get_ntrainparams(self.temporal_encoder)
+        s = get_ntrainparams(self.spatial_encoder_planet)
+        t = get_ntrainparams(self.temporal_encoder_planet)
+        s1 = get_ntrainparams(self.spatial_encoder_s1)
+        t1 = get_ntrainparams(self.temporal_encoder_s1)
         c = get_ntrainparams(self.decoder)
 
         print('TOTAL TRAINABLE PARAMETERS : {}'.format(total))
-        print('RATIOS: Spatial {:5.1f}% , Temporal {:5.1f}% , Classifier {:5.1f}%'.format(s / total * 100,
-                                                                                          t / total * 100,
-                                                                                          c / total * 100))
+        print('PLANET Spatial {:5.1f}%'.format(s / total * 100))
+        print('PLANET Temporal {:5.1f}%'.format(t / total * 100))
+        print('SENTINEL-1 Spatial {:5.1f}%'.format(s1 / total * 100))
+        print('SENTINEL-1 Temporal {:5.1f}%'.format(t1 / total * 100))
+        print('Classifier {:5.1f}%'.format(c / total * 100))
 
         return total
 

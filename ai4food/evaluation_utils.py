@@ -62,8 +62,8 @@ def bin_cross_entr_each_crop(logprobs, y_true, classes, device, args):
     y_prob = sm(logprobs)
     # convert to one-hot representation
     y_prob_ids = torch.argmax(y_prob, dim=1)
-    y_pred_onehot = nn.functional.one_hot(y_prob_ids, num_classes=5).float()
-    y_true_onehot = nn.functional.one_hot(y_true, num_classes=5).float()
+    y_pred_onehot = nn.functional.one_hot(y_prob_ids, num_classes=args.nr_classes).float()
+    y_true_onehot = nn.functional.one_hot(y_true, num_classes=args.nr_classes).float()
     #y_prob_clipped = torch.clip(y_pred_onehot, 1e-7, 1-1e-7)
     y_prob_clipped = torch.clip(y_prob, 1e-7, 1-1e-7)
     bin_ce = torch.tensor(bin_ce)
@@ -90,7 +90,7 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
     model.train()
     losses = list()
     eval_metrics = list()
-    with tqdm(enumerate(dataloader), total=len(dataloader),position=0, leave=True) as iterator:
+    with tqdm(enumerate(dataloader), total=len(dataloader),position=0, leave=True, disable=True) as iterator:
         for idx, batch in iterator:
             optimizer.zero_grad()
            
@@ -124,10 +124,10 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
             
             y_true = y_true.to(device)
 
-            eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
-            eval_metrics.append(eval_metric)
             loss = criterion(logprobs, y_true)
             loss.backward()
+            eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
+            eval_metrics.append(eval_metric)
             optimizer.step()
             iterator.set_description(f"train loss={loss:.2f}")
             losses.append(loss)
@@ -153,6 +153,7 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
         y_pred_list = list()
         y_score_list = list()
         field_ids_list = list()
+
         with tqdm(enumerate(dataloader), total=len(dataloader), position=0, leave=True) as iterator:
             
             for idx, batch in iterator:              
@@ -181,11 +182,11 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
                     else: logprobs = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device))))
                 
                 y_true = y_true.to(device)
-                eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
-                eval_metrics.append(eval_metric)
                 loss = criterion(logprobs, y_true.to(device))
                 iterator.set_description(f"valid loss={loss:.2f}")
                 losses.append(loss)
+                eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
+                eval_metrics.append(eval_metric)
                 y_true_list.append(y_true)
                 y_pred_list.append(logprobs.argmax(-1))
                 y_score_list.append(logprobs.exp())
@@ -199,7 +200,7 @@ def save_reference(data_loader, device, label_ids, label_names, args):
     output_list=[]
 
     with torch.no_grad():
-        with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
+        with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True, disable=True) as iterator:
             for idx, batch in iterator:
                 if len(args.input_data)>1: batch=batch[0]
                 (_, _, fid,_), y_true = batch
@@ -245,7 +246,7 @@ def save_predictions(target_dir, model, data_loader, device, label_ids, label_na
             output_list=[]
 
             with torch.no_grad():
-                with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
+                with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True, disable=True) as iterator:
                     for idx, batch in iterator:
                         
                         if len(args.input_data)==1:
