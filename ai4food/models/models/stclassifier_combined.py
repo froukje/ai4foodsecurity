@@ -10,7 +10,86 @@ from models.decoder import get_decoder
 from models.competings import GRU, TempConv
 
 
-class PseLTaeCombined(nn.Module):
+class PseLTaeCombinedPlanetS1S2(nn.Module):
+    """
+    Pixel-Set encoder + Lightweight Temporal Attention Encoder sequence classifier
+    """
+
+    def __init__(self, input_dim_planet=5, input_dim_s1=3, input_dim_s2=13, mlp1_planet=[5, 32, 64], mlp1_s1=[3, 32, 64], mlp1_s2=[13, 32, 64], pooling='mean_std', mlp2=[132, 128],
+                 with_extra=True, extra_size=4, n_head=16, d_k=8, d_model=256, mlp3_planet=[256, 128], mlp3_s1=[256, 64], mlp3_s2=[256, 64], dropout=0.2, T=1000,
+                 len_max_seq_planet=244, len_max_seq_s1=41, len_max_seq_s2=76, positions=None, mlp4=[128+64, 64, 32, 20], return_att=False):
+        super(PseLTaeCombinedPlanetS1S2, self).__init__()
+        
+        # if extras is true then include it only in planet model
+        self.spatial_encoder_planet = PixelSetEncoder(input_dim_planet, mlp1=mlp1_planet, pooling=pooling, mlp2=mlp2, with_extra=with_extra,
+                                               extra_size=extra_size)
+        self.temporal_encoder_planet = LTAE(in_channels=mlp2[-1], n_head=n_head, d_k=d_k,
+                                           d_model=d_model, n_neurons=mlp3_planet, dropout=dropout,
+                                           T=T, len_max_seq=len_max_seq_planet, positions=positions, return_att=return_att
+                                           )
+        
+        if with_extra: mlp2[0] = mlp2[0] - extra_size
+            
+        self.spatial_encoder_s1 = PixelSetEncoder(input_dim_s1, mlp1=mlp1_s1, pooling=pooling, mlp2=mlp2, with_extra=False,
+                                               extra_size=extra_size)
+        self.temporal_encoder_s1 = LTAE(in_channels=mlp2[-1], n_head=n_head, d_k=d_k,
+                                           d_model=d_model, n_neurons=mlp3_s1, dropout=dropout,
+                                           T=T, len_max_seq=len_max_seq_s1, positions=positions, return_att=return_att
+                                           )
+        self.spatial_encoder_s2 = PixelSetEncoder(input_dim_s2, mlp1=mlp1_s2, pooling=pooling, mlp2=mlp2, with_extra=False,
+                                               extra_size=extra_size)
+        self.temporal_encoder_s2 = LTAE(in_channels=mlp2[-1], n_head=n_head, d_k=d_k,
+                                           d_model=d_model, n_neurons=mlp3_s2, dropout=dropout,
+                                           T=T, len_max_seq=len_max_seq_s2, positions=positions, return_att=return_att
+                                           )
+        self.decoder = get_decoder(mlp4)
+        self.return_att = return_att
+
+    def forward(self, input):
+        """
+         Args:
+            input(tuple): (Pixel-Set, Pixel-Mask) or ((Pixel-Set, Pixel-Mask), Extra-features)
+            Pixel-Set : Batch_size x Sequence length x Channel x Number of pixels
+            Pixel-Mask : Batch_size x Sequence length x Number of pixels
+            Extra-features : Batch_size x Sequence length x Number of features
+        """
+        
+        input1, input2, input3 = input
+        out1 = self.spatial_encoder_planet(input1) # out size is 8,48,128
+        out2 = self.spatial_encoder_s1(input2)
+        out3 = self.spatial_encoder_s2(input3)
+        
+        if self.return_att:
+            out1, att1 = self.temporal_encoder_planet(out1)
+            out2, att2 = self.temporal_encoder_s1(out2)
+            out3, att3 = self.temporal_encoder_s2(out3)
+            out = torch.cat([out1, out2, out3], dim=1)
+            out = self.decoder(out)
+            return out, (att1, att2)
+        else:
+            out1 = self.temporal_encoder_planet(out1)
+            out2 = self.temporal_encoder_s1(out2)
+            out3 = self.temporal_encoder_s2(out3)
+            out = torch.cat([out1, out2, out3], dim=1)            
+            out = self.decoder(out)
+            return out
+
+    def param_ratio(self):
+        total = get_ntrainparams(self)
+        s = get_ntrainparams(self.spatial_encoder)
+        t = get_ntrainparams(self.temporal_encoder)
+        c = get_ntrainparams(self.decoder)
+
+        print('TOTAL TRAINABLE PARAMETERS : {}'.format(total))
+        print('RATIOS: Spatial {:5.1f}% , Temporal {:5.1f}% , Classifier {:5.1f}%'.format(s / total * 100,
+                                                                                          t / total * 100,
+                                                                                          c / total * 100))
+
+        return total
+
+
+    
+class PseLTaeCombinedPlanetS1(nn.Module):
     """
     Pixel-Set encoder + Lightweight Temporal Attention Encoder sequence classifier
     """
@@ -18,15 +97,19 @@ class PseLTaeCombined(nn.Module):
     def __init__(self, input_dim_planet=5, input_dim_s1=3, mlp1_planet=[5, 32, 64], mlp1_s1=[3, 32, 64], pooling='mean_std', mlp2=[132, 128], with_extra=True, 
                  extra_size=4, n_head=16, d_k=8, d_model=256, mlp3_planet=[256, 128], mlp3_s1=[256, 64],dropout=0.2, T=1000, len_max_seq_planet=244, len_max_seq_s1=41,positions=None,
                  mlp4=[128+64, 64, 32, 20], return_att=False):
-        super(PseLTaeCombined, self).__init__()
+        super(PseLTaeCombinedPlanetS1, self).__init__()
         
+        # if extras is true then include it only in planet model
         self.spatial_encoder_planet = PixelSetEncoder(input_dim_planet, mlp1=mlp1_planet, pooling=pooling, mlp2=mlp2, with_extra=with_extra,
                                                extra_size=extra_size)
         self.temporal_encoder_planet = LTAE(in_channels=mlp2[-1], n_head=n_head, d_k=d_k,
                                            d_model=d_model, n_neurons=mlp3_planet, dropout=dropout,
                                            T=T, len_max_seq=len_max_seq_planet, positions=positions, return_att=return_att
                                            )
-        self.spatial_encoder_s1 = PixelSetEncoder(input_dim_s1, mlp1=mlp1_s1, pooling=pooling, mlp2=mlp2, with_extra=with_extra,
+        
+        if with_extra: mlp2[0] = mlp2[0] - extra_size
+        
+        self.spatial_encoder_s1 = PixelSetEncoder(input_dim_s1, mlp1=mlp1_s1, pooling=pooling, mlp2=mlp2, with_extra=False,
                                                extra_size=extra_size)
         self.temporal_encoder_s1 = LTAE(in_channels=mlp2[-1], n_head=n_head, d_k=d_k,
                                            d_model=d_model, n_neurons=mlp3_s1, dropout=dropout,
@@ -58,7 +141,8 @@ class PseLTaeCombined(nn.Module):
         else:
             out1 = self.temporal_encoder_planet(out1)
             out2 = self.temporal_encoder_s1(out2)
-            out = torch.cat([out1, out2], dim=1)            
+            #print('aaaaaaaaaaaaa',out1.size(), out2.size())
+            out = torch.cat([out1, out2], dim=1)   
             out = self.decoder(out)
             return out
 
@@ -74,6 +158,7 @@ class PseLTaeCombined(nn.Module):
                                                                                           c / total * 100))
 
         return total
+
 
 
 

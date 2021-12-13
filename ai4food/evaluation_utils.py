@@ -93,27 +93,35 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
     with tqdm(enumerate(dataloader), total=len(dataloader),position=0, leave=True) as iterator:
         for idx, batch in iterator:
             optimizer.zero_grad()
-            
-            if args.use_pselatae and args.include_extras:
+           
+            # for only one input
+            if len(args.input_data)==1:
+                # either pseltae or spatiotemporal model
                 (x, mask, _, extra_features), y_true = batch
-                logprobs = model(((x.to(device), mask.to(device)), extra_features.to(device)))
-            # for combined model - current implementation w/o extra features
-            elif len(args.input_data)>1:
+                if args.include_extras: logprobs = model(((x.to(device), mask.to(device)), extra_features.to(device)))
+                else: logprobs = model((x.to(device), mask.to(device)))
+                        
+            # for two data inputs - planet and sentinel-1
+            elif len(args.input_data)==2:
                 sample_planet, sample_s1 = batch
                 #for i in range(len(sample_planet)):
                 #    sample_planet[i] = sample_planet[i].to(device)
                 #    sample_s1[i] = sample_s1[i].to(device)
                 
-                (x_p, mask_p, _), y_true = sample_planet
-                (x_s1, mask_s1, _), _ = sample_s1
-                logprobs = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
+                (x_p, mask_p, _, extra_features), y_true = sample_planet
+                (x_s1, mask_s1, _, extra_features), _ = sample_s1
+                if args.include_extras: logprobs = model((((x_p.to(device), mask_p.to(device)), extra_features.to(device)), (x_s1.to(device), mask_s1.to(device))))
+                else: logprobs = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
+                
+            # or for three inputs - planet, sentinel-1 and sentinel-2   
+            elif len(args.input_data)==3:
+                sample_planet, sample_s1, sample_s2 = batch                
+                (x_p, mask_p, _, extra_features), y_true = sample_planet
+                (x_s1, mask_s1, _, _), _ = sample_s1
+                (x_s2, mask_s2, _, _), _ = sample_s2
+                if args.include_extras: logprobs = model((((x_p.to(device), mask_p.to(device)), extra_features.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device))))
+                else: logprobs = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device))))
             
-            # for spatiotemporal models
-            else:
-                (x, mask, _), y_true = batch
-                if args.use_pselatae: logprobs = model((x.to(device), mask.to(device)))
-                else: logprobs = model(x.to(device))
-
             y_true = y_true.to(device)
 
             eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
@@ -146,27 +154,32 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
         y_score_list = list()
         field_ids_list = list()
         with tqdm(enumerate(dataloader), total=len(dataloader), position=0, leave=True) as iterator:
-            for idx, batch in iterator:
-               
-                if args.use_pselatae and args.include_extras:
+            
+            for idx, batch in iterator:              
+                           
+                # for only one input
+                if len(args.input_data)==1:
                     (x, mask, field_id, extra_features), y_true = batch
-                    logprobs = model(((x.to(device), mask.to(device)), extra_features.to(device)))
-                # for combined model - current implementation wo extra features
-                elif len(args.input_data)>1:
-                    sample_planet, sample_s1 = batch
-                    #for i in range(len(sample_planet)):
-                    #    sample_planet[i] = sample_planet[i].to(device)
-                    #    sample_s1[i] = sample_s1[i].to(device)
+                    if args.include_extras: logprobs = model(((x.to(device), mask.to(device)), extra_features.to(device)))
+                    else: logprobs = model((x.to(device), mask.to(device)))
 
-                    (x_p, mask_p, field_id), y_true = sample_planet
-                    (x_s1, mask_s1, _), y_true = sample_s1
-                    logprobs = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
-                # for spatiotemporal models
-                else:
-                    (x, mask, field_id), y_true = batch
-                    if args.use_pselatae: logprobs = model((x.to(device), mask.to(device)))
-                    else: logprobs = model(x.to(device))
-                        
+                # for two data inputs - planet and sentinel-1
+                elif len(args.input_data)==2:
+                    sample_planet, sample_s1 = batch
+                    (x_p, mask_p, field_id, extra_features), y_true = sample_planet
+                    (x_s1, mask_s1, _, extra_features), _ = sample_s1
+                    if args.include_extras: logprobs = model((((x_p.to(device), mask_p.to(device)), extra_features.to(device)), (x_s1.to(device), mask_s1.to(device))))
+                    else: logprobs = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
+
+                # or for three inputs - planet, sentinel-1 and sentinel-2   
+                elif len(args.input_data)==3:
+                    sample_planet, sample_s1, sample_s2 = batch                
+                    (x_p, mask_p, field_id, extra_features), y_true = sample_planet
+                    (x_s1, mask_s1, _, _), _ = sample_s1
+                    (x_s2, mask_s2, _, _), _ = sample_s2
+                    if args.include_extras: logprobs = model((((x_p.to(device), mask_p.to(device)), extra_features.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device))))
+                    else: logprobs = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device))))
+                
                 y_true = y_true.to(device)
                 eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
                 eval_metrics.append(eval_metric)
@@ -177,6 +190,7 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
                 y_pred_list.append(logprobs.argmax(-1))
                 y_score_list.append(logprobs.exp())
                 field_ids_list.append(field_id)
+                
         return torch.stack(losses), torch.cat(y_true_list), torch.cat(y_pred_list), torch.cat(y_score_list), torch.cat(field_ids_list), torch.stack(eval_metrics)
 
 
@@ -188,8 +202,7 @@ def save_reference(data_loader, device, label_ids, label_names, args):
         with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
             for idx, batch in iterator:
                 if len(args.input_data)>1: batch=batch[0]
-                if args.include_extras: (_, _, fid,_), y_true = batch
-                else: (_, _, fid), y_true = batch
+                (_, _, fid,_), y_true = batch
                 for i in range(y_true.size()[0]):
                     fid_i = fid[i].view(1,-1)[0]
                     output_list.append({'fid': fid_i.cpu().detach().numpy()[0],
@@ -207,8 +220,81 @@ def save_reference(data_loader, device, label_ids, label_names, args):
         output_frame = pd.DataFrame.from_dict(output_list)
         output_frame.to_json(output_name)
         print(f'Reference for test was saved to location: {(output_name)}')
+        
 
+def save_predictions(target_dir, model, data_loader, device, label_ids, label_names, args, num_samples, num_folds=5, fold_id=0):
+    
+    not_found=0
+    softmax=torch.nn.Softmax(dim=1)
+    probs_array=np.zeros((num_samples, len(label_ids)))
+    
+    for fold in range(num_folds):
+        
+        if os.path.exists(target_dir):
+            if num_folds==1: fold_id = fold_id
+            else: fold_id = fold
+            save_model_path = os.path.join(args.target_dir, f'best_model_fold_{fold_id}.pt')
+            checkpoint = torch.load(save_model_path)
+            START_EPOCH = checkpoint["epoch"]
+            log = checkpoint["log"]
+            model.load_state_dict(checkpoint["model_state"])
+            model.eval()
+            print(f"INFO: Resuming from {save_model_path}, epoch {START_EPOCH}")
 
+            # list of dictionaries with predictions:
+            output_list=[]
+
+            with torch.no_grad():
+                with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
+                    for idx, batch in iterator:
+                        
+                        if len(args.input_data)==1:
+                            (x_p, mask, fid, extra_features), _ = batch
+                            
+                            if args.include_extras: logits = model(((x_p.to(device), mask.to(device)), extra_features.to(device)))  
+                            else: logits = model((x_p.to(device), mask.to(device)))
+                        # for combined model - current implementation wo extra features
+                        elif len(args.input_data)==2:
+                            sample_planet, sample_s1 = batch
+                            (x_p, mask_p, fid), _ = sample_planet
+                            (x_s1, mask_s1, _), _ = sample_s1
+                            logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
+                        elif len(args.input_data)==3:
+                            sample_planet, sample_s1, sample_s2 = batch
+                            (x_p, mask_p, fid), _ = sample_planet
+                            (x_s1, mask_s1, _), _ = sample_s1
+                            (x_s2, mask_s2, _), _ = sample_s2
+                            logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device))))           
+                        
+                        batch_s = x_p.size(0)
+                        for i in range(logits.size()[0]):
+                            logits_i = logits[i].view(1,-1)
+                            predicted_probabilities = softmax(logits_i).cpu().detach().numpy()[0]
+                            probs_array[idx*batch_s+i] += predicted_probabilities # idx*batch_s:(idx*batch_s)+batch_s
+                            
+                            if fold==(num_folds-1):
+                                probs_array_ids=probs_array[idx*batch_s+i]/(num_folds-not_found)
+                                fid_i = fid[i].view(1,-1)[0]
+                                predicted_class = np.argmax(probs_array_ids)
+                                output_list.append({'fid': fid_i.cpu().detach().numpy()[0],
+                                            'crop_id': label_ids[predicted_class],
+                                            'crop_name': label_names[predicted_class],
+                                            'crop_probs': np.array(probs_array_ids)})
+
+        else:
+            print(f"INFO: no best model found for fold {fold_id}")
+            not_found+=1
+            
+    #  save predictions into output json:
+    output_name = os.path.join(args.target_dir, 'submission.json')
+    print(f'Submission was saved to location: {(output_name)}')
+    output_frame = pd.DataFrame.from_dict(output_list)
+    output_frame.to_json(output_name)
+
+    
+    
+    
+'''
 def save_predictions(save_model_path, model, data_loader, device, label_ids, label_names, args):
     if os.path.exists(save_model_path):
         checkpoint = torch.load(save_model_path)
@@ -224,25 +310,31 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
 
         with torch.no_grad():
             with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
-                for idx, batch in iterator:
-                    
-                    if args.use_pselatae and args.include_extras:
+                for idx, batch in iterator:    
+                    # for only one input
+                    if len(args.input_data)==1:
+                        # one dataset as input
                         (x, mask, fid, extra_features), _ = batch
-                        logits = model(((x.to(device), mask.to(device)), extra_features.to(device)))
-                    # for combined model - current implementation wo extra features
-                    elif len(args.input_data)>1:
+                        if args.include_extras: logits = model(((x.to(device), mask.to(device)), extra_features.to(device)))
+                        else: logits = model((x.to(device), mask.to(device)))
+
+                    # for two data inputs - planet and sentinel-1
+                    elif len(args.input_data)==2:
                         sample_planet, sample_s1 = batch
-                        #for i in range(len(sample_planet)):
-                        #    sample_planet[i] = sample_planet[i].to(device)
-                        #    sample_s1[i] = sample_s1[i].to(device)
-                        (x_p, mask_p, fid), _ = sample_planet
-                        (x_s1, mask_s1, _), _ = sample_s1
-                        logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
-                    # for spatiotemporal model
-                    else:
-                        (x, mask, fid), _ = batch
-                        if args.use_pselatae: logits = model((x.to(device), mask.to(device)))
-                        else: logits = model(x.to(device))
+                        (x_p, mask_p, fid, extra_features), _ = sample_planet
+                        (x_s1, mask_s1, _, extra_features), _ = sample_s1
+                        if args.include_extras: logits = model((((x_p.to(device), mask_p.to(device)), extra_features.to(device)), (x_s1.to(device), mask_s1.to(device))))
+                        else: logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
+
+                    # or for three inputs - planet, sentinel-1 and sentinel-2   
+                    elif len(args.input_data)==3:
+                        sample_planet, sample_s1, sample_s2 = batch                
+                        (x_p, mask_p, fid, extra_features), _ = sample_planet
+                        (x_s1, mask_s1, _, _), _ = sample_s1
+                        (x_s2, mask_s2, _, _), _ = sample_s2
+                        if args.include_extras: logits = model((((x_p.to(device), mask_p.to(device)), extra_features.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device))))
+                        else: logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device))))
+
                     for i in range(logits.size()[0]):
                         logits_i = logits[i].view(1,-1)
                         predicted_probabilities = softmax(logits_i).cpu().detach().numpy()[0]
@@ -261,106 +353,9 @@ def save_predictions(save_model_path, model, data_loader, device, label_ids, lab
             output_name = os.path.join(args.target_dir, 'submission.json')
             print(f'Submission was saved to location: {(output_name)}')
         output_frame = pd.DataFrame.from_dict(output_list)
-        # temporary fix for class mismatch
-        
-        # swap 1s and 4s
-        #crop_ids = output_frame['crop_id']
-        #crop_ids = np.array(crop_ids)
-        #crop_ids[crop_ids==1] = 100
-        #crop_ids[crop_ids==4] = 1
-        #crop_ids[crop_ids==100] = 4
-        #output_frame['crop_id'] = crop_ids.astype(np.uint8)
-        # swap Wheat and Lucerne/Medics
-        #output_frame['crop_name']=output_frame['crop_name'].str.replace('Wheat', 'blabla')
-        #output_frame['crop_name']=output_frame['crop_name'].str.replace('Lucerne/Medics', 'Wheat')
-        #output_frame['crop_name']=output_frame['crop_name'].str.replace('blabla', 'Lucerne/Medics')
-
         print(output_frame.tail())
         output_frame.to_json(output_name)
 
     else:
         print('INFO: no best model found ...')
-        
-def save_predictions_majority(target_dir, model, data_loader, device, label_ids, label_names, args, num_samples, num_folds=5):
-    
-    not_found=0
-    softmax=torch.nn.Softmax(dim=1)
-    probs_array=np.zeros((num_samples, len(label_ids)))
-    batch_s = args.batch_size
-    
-    for fold in range(num_folds):
-        
-        if os.path.exists(target_dir):
-            save_model_path = os.path.join(args.target_dir, f'best_model_fold_{fold}.pt')
-            checkpoint = torch.load(save_model_path)
-            START_EPOCH = checkpoint["epoch"]
-            log = checkpoint["log"]
-            model.load_state_dict(checkpoint["model_state"])
-            model.eval()
-            print(f"INFO: Resuming from {save_model_path}, epoch {START_EPOCH}")
-
-            # list of dictionaries with predictions:
-            output_list=[]
-
-            with torch.no_grad():
-                with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True) as iterator:
-                    for idx, batch in iterator:
-                        
-                        if args.use_pselatae and args.include_extras:
-                            (x, mask, fid, extra_features), _ = batch
-                            batch_s = x.size(0)
-                            logits = model(((x.to(device), mask.to(device)), extra_features.to(device)))
-                        # for combined model - current implementation wo extra features
-                        elif len(args.input_data)>1:
-                            sample_planet, sample_s1 = batch
-                            #for i in range(len(sample_planet)):
-                            #    sample_planet[i] = sample_planet[i].to(device)
-                            #    sample_s1[i] = sample_s1[i].to(device)
-                            (x_p, mask_p, fid), _ = sample_planet
-                            (x_s1, mask_s1, _), _ = sample_s1
-                            batch_s = x_p.size(0)
-                            logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
-                        # for spatiotemporal model
-                        else:
-                            (x, mask, fid), _ = batch
-                            batch_s = x.size(0)
-                            if args.use_pselatae: logits = model((x.to(device), mask.to(device)))
-                            else: logits = model(x.to(device))
-                        
-                        
-                        for i in range(logits.size()[0]):
-                            logits_i = logits[i].view(1,-1)
-                            predicted_probabilities = softmax(logits_i).cpu().detach().numpy()[0]
-                            probs_array[idx*batch_s+i] += predicted_probabilities # idx*batch_s:(idx*batch_s)+batch_s
-                            
-                            if fold==(num_folds-1):
-                                probs_array_ids=probs_array[idx*batch_s+i]/(num_folds-not_found)
-                                fid_i = fid[i].view(1,-1)[0]
-                                predicted_class = np.argmax(probs_array_ids)
-                                output_list.append({'fid': fid_i.cpu().detach().numpy()[0],
-                                            'crop_id': label_ids[predicted_class],
-                                            'crop_name': label_names[predicted_class],
-                                            'crop_probs': np.array(probs_array_ids)})
-
-        else:
-            print(f"INFO: no best model found for fold {fold}")
-            not_found+=1
-            
-    #  save predictions into output json:
-    output_name = os.path.join(args.target_dir, 'submission.json')
-    print(f'Submission was saved to location: {(output_name)}')
-    output_frame = pd.DataFrame.from_dict(output_list)
-    # ____________________temporary fix for class mismatch________________________
-    # swap 1s and 4s
-    #crop_ids = output_frame['crop_id']
-    #crop_ids = np.array(crop_ids)
-    #crop_ids[crop_ids==1] = 100
-    #crop_ids[crop_ids==4] = 1
-    #crop_ids[crop_ids==100] = 4
-    #output_frame['crop_id'] = crop_ids.astype(np.uint8)
-    # swap Wheat and Lucerne/Medics
-    #output_frame['crop_name']=output_frame['crop_name'].str.replace('Wheat', 'blabla')
-    #output_frame['crop_name']=output_frame['crop_name'].str.replace('Lucerne/Medics', 'Wheat')
-    #output_frame['crop_name']=output_frame['crop_name'].str.replace('blabla', 'Lucerne/Medics')
-
-    output_frame.to_json(output_name)
+'''

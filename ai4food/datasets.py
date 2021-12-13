@@ -50,9 +50,9 @@ class EarthObservationDataset(Dataset):
         #X[:,:,~mask] = self.args.fill_value
         if self.extra_features is not None:
             extra_f = self.extra_features[idx]
-            return (X, mask, fid, extra_f), label
-        else:
-            return (X, mask, fid), label
+        else: extra_f = np.zeros_like(1)
+            
+        return (X, mask, fid, extra_f), label
 
 class Sentinel2Dataset(EarthObservationDataset):
     '''
@@ -71,8 +71,13 @@ class Sentinel2Dataset(EarthObservationDataset):
         # add NDVI
         if args.ndvi:
             ndvi = Sentinel2Dataset._calc_ndvi(self.X)
-            ndvi = np.expand_dims(ndvi, axis=1)
-            self.X = np.concatenate([self.X, ndvi], axis=1)
+            ndvi = np.expand_dims(ndvi, axis=2)
+            if args.drop_channels:
+                self.X = ndvi
+            else:
+                self.X = np.concatenate([np.expand_dims(self.X[:, :, 7, :], axis=2), np.expand_dims(self.X[:, :, 3, :], axis=2), ndvi], axis=2)
+                
+            # self.X = np.concatenate([self.X,ndvi], axis=2)
 
 
     @staticmethod
@@ -84,8 +89,8 @@ class Sentinel2Dataset(EarthObservationDataset):
 
         '''
 
-        nir = X[:, 7]
-        red = X[:, 3]
+        nir = X[:, :, 7, :]
+        red = X[:, :, 3, :]
 
         return (nir - red) / (nir + red)
 
@@ -98,8 +103,11 @@ class Sentinel1Dataset(EarthObservationDataset):
         if args.nri:
             nri = Sentinel1Dataset._calc_rvi(self.X)
             nri = np.expand_dims(nri, axis=2) # changed axis from 1 to 2
-            self.X = np.concatenate([self.X, nri], axis=2) # changed axis from 1 to 2  
-            
+            if args.drop_channels:
+                self.X = nri
+            else:
+                self.X = np.concatenate([self.X, nri], axis=2) # changed axis from 1 to 2  
+                
     @staticmethod
     def _calc_rvi(X):
         VV = X[:,:,0,:]
@@ -123,7 +131,10 @@ class PlanetDataset(EarthObservationDataset):
         if args.ndvi:
             ndvi = PlanetDataset._calc_ndvi(self.X)
             ndvi = np.expand_dims(ndvi, axis=2) # changed axis from 1 to 2
-            self.X = np.concatenate([self.X, ndvi], axis=2) # changed axis from 1 to 2
+            if args.drop_channels:
+                self.X = ndvi
+            else:
+                self.X = np.concatenate([self.X, ndvi], axis=2) # changed axis from 1 to 2
 
     @staticmethod
     def _calc_ndvi(X):
@@ -152,6 +163,10 @@ class CombinedDataset(Dataset):
                 args.input_data = ['planet']
                 planet_dataset = PlanetDataset(args)
                 self.datasets.append(planet_dataset)
+            elif input_data=='planet-5':
+                args.input_data = ['planet-5']
+                planet_dataset = PlanetDataset(args)
+                self.datasets.append(planet_dataset)
             elif input_data=='sentinel-1':
                 args.input_data = ['sentinel-1']
                 sentinel1_dataset = Sentinel1Dataset(args)
@@ -160,46 +175,49 @@ class CombinedDataset(Dataset):
                 args.input_data = ['sentinel-2']
                 sentinel2_dataset = Sentinel2Dataset(args)
                 self.datasets.append(sentinel2_dataset)
-        args.input_data = input_data 
-        '''
-        # this is necessary only when s1 and planet data samples don't match
-        lengths0 = len(self.datasets[0])
-        lengths1 = len(self.datasets[1])
+        args.input_data = self.input_data 
 
-        if lengths0!=lengths1:
-            fids0 = self.datasets[0].fid
-            fids1 = self.datasets[1].fid
-            not_in_fid1 = np.setdiff1d(fids0,fids1)
-            not_in_fid0 = np.setdiff1d(fids1,fids0) 
-            u,c=np.unique(fids0, return_counts=True)
-            dup=u[c>1]
-            where_rem=[np.where(fids0==dup)[0][-1]]
-            for it in not_in_fid1:
-                where_rem.append(np.where(fids0==it)[0][0])
-                
-            self.datasets[0].X = np.delete(self.datasets[0].X, where_rem, axis=0)
-            self.datasets[0].mask = np.delete(self.datasets[0].mask, where_rem, axis=0)
-            self.datasets[0].fid = np.delete(self.datasets[0].fid, where_rem)
-            self.datasets[0].labels = np.delete(self.datasets[0].labels, where_rem)
-        
-        sorted0_ids = self.datasets[0].fid.argsort()
-        sorted1_ids = self.datasets[1].fid.argsort()
-        
-        self.datasets[0].X = self.datasets[0].X[sorted0_ids]
-        self.datasets[0].mask = self.datasets[0].mask[sorted0_ids]
-        self.datasets[0].fid = self.datasets[0].fid[sorted0_ids]
-        self.datasets[0].labels = self.datasets[0].labels[sorted0_ids]
-
-        self.datasets[1].X = self.datasets[1].X[sorted1_ids]
-        self.datasets[1].mask = self.datasets[1].mask[sorted1_ids]
-        self.datasets[1].fid = self.datasets[1].fid[sorted1_ids]
-        self.datasets[1].labels = self.datasets[1].labels[sorted1_ids]
-        '''
         for i in range(1, len(self.datasets)):
-            assert (self.datasets[i-1].fid==self.datasets[i].fid).all(),'s1 and planet not sorted correctly'
+            assert (self.datasets[i-1].fid==self.datasets[i].fid).all(),'s1, s2 and/or planet not sorted correctly'
     
     def __len__(self):
         return len(self.datasets[0].labels) 
     
     def __getitem__(self, idx):
         return tuple(d[idx] for d in self.datasets)
+
+    
+'''
+# this is necessary only when s1 and planet data samples don't match
+lengths0 = len(self.datasets[0])
+lengths1 = len(self.datasets[1])
+
+if lengths0!=lengths1:
+    fids0 = self.datasets[0].fid
+    fids1 = self.datasets[1].fid
+    not_in_fid1 = np.setdiff1d(fids0,fids1)
+    not_in_fid0 = np.setdiff1d(fids1,fids0) 
+    u,c=np.unique(fids0, return_counts=True)
+    dup=u[c>1]
+    where_rem=[np.where(fids0==dup)[0][-1]]
+    for it in not_in_fid1:
+        where_rem.append(np.where(fids0==it)[0][0])
+
+    self.datasets[0].X = np.delete(self.datasets[0].X, where_rem, axis=0)
+    self.datasets[0].mask = np.delete(self.datasets[0].mask, where_rem, axis=0)
+    self.datasets[0].fid = np.delete(self.datasets[0].fid, where_rem)
+    self.datasets[0].labels = np.delete(self.datasets[0].labels, where_rem)
+
+sorted0_ids = self.datasets[0].fid.argsort()
+sorted1_ids = self.datasets[1].fid.argsort()
+
+self.datasets[0].X = self.datasets[0].X[sorted0_ids]
+self.datasets[0].mask = self.datasets[0].mask[sorted0_ids]
+self.datasets[0].fid = self.datasets[0].fid[sorted0_ids]
+self.datasets[0].labels = self.datasets[0].labels[sorted0_ids]
+
+self.datasets[1].X = self.datasets[1].X[sorted1_ids]
+self.datasets[1].mask = self.datasets[1].mask[sorted1_ids]
+self.datasets[1].fid = self.datasets[1].fid[sorted1_ids]
+self.datasets[1].labels = self.datasets[1].labels[sorted1_ids]
+'''
