@@ -265,7 +265,7 @@ def main(args):
             test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
             save_model_path = os.path.join(args.target_dir, 'best_model.pt')
             print(f'\nINFO: saving predictions from the {args.split} set')
-            save_predictions_majority(args.target_dir, model, test_loader, device, label_ids, label_names, args, len(test_dataset))
+            save_predictions_majority(args.target_dir, model, test_loader, device, label_ids, label_names, args, len(test_dataset), num_folds=args.k_folds)
 
     # save reference
     if args.save_ref:
