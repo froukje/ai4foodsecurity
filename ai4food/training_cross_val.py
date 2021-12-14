@@ -97,10 +97,14 @@ def main(args):
         weights_for_samples = torch.Tensor(weights_for_samples).to(device) 
         criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="mean") 
         #criterion = nn.NLLLoss(reduction='sum')
+
+        unique_field_ids = np.unique(test_dataset.datasets[0].fid)
+        all_field_ids = test_dataset.datasets[0].fid
+        print('Identified unique field IDs: ', len(unique_field_ids))
         
         kfold = KFold(n_splits=args.k_folds, shuffle=True, random_state=7) #StratifiedKFold(n_splits=args.k_folds, shuffle=True) 
 
-        for fold, (train_ids, val_ids) in enumerate(kfold.split(test_dataset)):
+        for fold, (train_field_ids, val_field_ids) in enumerate(kfold.split(unique_field_ids)):
 
             print('----------------------------------------------')
             print(f'STARTING FOLD {fold}')
@@ -114,6 +118,21 @@ def main(args):
             all_train_losses = []
             all_valid_losses = []
             log_scores= []
+
+            train_ids = []
+            val_ids   = []
+
+            for ufi in unique_field_ids[train_field_ids]:
+                train_ids.extend(np.where(all_field_ids == ufi)[0])
+
+            for ufi in unique_field_ids[val_field_ids]:
+                val_ids.extend(np.where(all_field_ids == ufi)[0])
+
+            # shuffle the sequences in place
+            np.random.shuffle(train_ids)
+
+            print('Train samples: ', np.array(train_ids).shape)
+            print('Valid samples: ', np.array(val_ids).shape)
 
             train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
             val_subsampler = torch.utils.data.SubsetRandomSampler(val_ids)
