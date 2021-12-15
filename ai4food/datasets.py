@@ -39,8 +39,15 @@ class EarthObservationDataset(Dataset):
             print('Adding extra features from ', labels_path)
             extras = gpd.read_file(labels_path)
 
-            crop_area = extras.loc[extras["fid"].isin(self.fid)]["NORMALIZED_SHAPE_AREA"]
-            crop_len  = extras.loc[extras["fid"].isin(self.fid)]["NORMALIZED_SHAPE_LEN"]
+            crop_area = []
+            crop_len  = []
+
+            for ii, ffid in enumerate(self.fid):
+                crop_area.extend(extras.loc[extras["fid"] == ffid]["NORMALIZED_SHAPE_AREA"].values)
+                crop_len.extend(extras.loc[extras["fid"]  == ffid]["NORMALIZED_SHAPE_LEN"].values)
+
+                if ii%(len(self.fid)//20) == 0:
+                    print(f'... finished {ii:8d}/{len(self.fid):8d} entries ({ii/len(self.fid)*100:.1f} %)')
 
             self.extra_features = np.array([crop_area, crop_len]).T
         else:
