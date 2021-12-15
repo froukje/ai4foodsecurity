@@ -223,7 +223,7 @@ def save_reference(data_loader, device, label_ids, label_names, args):
         print(f'Reference for test was saved to location: {(output_name)}')
         
 
-def save_predictions(target_dir, model, data_loader, device, label_ids, label_names, args, num_samples, num_folds=5, fold_id=0):
+def save_predictions(target_dir, model, data_loader, device, label_ids, label_names, args, num_samples, num_folds=5, fold_id=0, filename='submission.json'):
     
     not_found=0
     softmax=torch.nn.Softmax(dim=1)
@@ -287,7 +287,7 @@ def save_predictions(target_dir, model, data_loader, device, label_ids, label_na
             not_found+=1
             
     #  save predictions into output json:
-    output_name = os.path.join(args.target_dir, 'submission.json')
+    output_name = os.path.join(args.target_dir, filename)
     print(f'Submission was saved to location: {(output_name)}')
     output_frame = pd.DataFrame.from_dict(output_list)
     output_frame.to_json(output_name)

@@ -257,7 +257,7 @@ def main(args):
             
             if args.save_preds:
                 print(f'\nINFO: saving predictions from the {args.split} set')
-                save_predictions(args.target_dir, model, valid_loader, device, label_ids, label_names, args, len(val_subsampler), num_folds=1, fold_id=fold)
+                save_predictions(args.target_dir, model, valid_loader, device, label_ids, label_names, args, len(val_subsampler), num_folds=1, fold_id=fold, filename=f'{args.split}_{fold}.json')
             
     else:
         # instatiate the model
