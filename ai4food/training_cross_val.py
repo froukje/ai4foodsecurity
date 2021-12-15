@@ -98,8 +98,12 @@ def main(args):
         criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="mean") 
         #criterion = nn.NLLLoss(reduction='sum')
 
-        unique_field_ids = np.unique(test_dataset.datasets[0].fid)
-        all_field_ids = test_dataset.datasets[0].fid
+        if len(args.input_data)==1:
+            unique_field_ids = np.unique(test_dataset.fid)
+            all_field_ids = test_dataset.fid
+        else:
+            unique_field_ids = np.unique(test_dataset.datasets[0].fid)
+            all_field_ids = test_dataset.datasets[0].fid
         print('Identified unique field IDs: ', len(unique_field_ids))
         
         kfold = KFold(n_splits=args.k_folds, shuffle=True, random_state=7) #StratifiedKFold(n_splits=args.k_folds, shuffle=True) 
