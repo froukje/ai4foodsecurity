@@ -154,7 +154,7 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
         y_score_list = list()
         field_ids_list = list()
 
-        with tqdm(enumerate(dataloader), total=len(dataloader), position=0, leave=True) as iterator:
+        with tqdm(enumerate(dataloader), total=len(dataloader), position=0, leave=True, disable=True) as iterator:
             
             for idx, batch in iterator:              
                            
