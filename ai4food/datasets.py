@@ -35,11 +35,14 @@ class EarthObservationDataset(Dataset):
             self.X = np.nan_to_num(self.X, nan=0, posinf=0, neginf=0)
         
         if args.include_extras:
-            labels_path='/work/ka1176/shared_data/2021-ai4food/labels_combined.geojson' # when moved to data dir change to os.path.join(data_dir,'labels_combined.geojson')
-            extras=gpd.read_file(labels_path)
-            crop_area = np.array(extras['SHAPE_AREA'])
-            crop_length = np.array(extras['SHAPE_LEN'])
-            self.extra_features = np.array([crop_area, crop_length]).T
+            labels_path = os.path.join(args.dev_data_dir,'labels_combined.geojson')
+            print('Adding extra features from ', labels_path)
+            extras = gpd.read_file(labels_path)
+
+            crop_area = extras.loc[extras["fid"].isin(self.fid)]["SHAPE_AREA"]
+            crop_len  = extras.loc[extras["fid"].isin(self.fid)]["SHAPE_LEN"]
+
+            self.extra_features = np.array([crop_area, crop_len]).T
         else:
             self.extra_features = None
     

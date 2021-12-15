@@ -139,8 +139,10 @@ def main(args):
             train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
             val_subsampler = torch.utils.data.SubsetRandomSampler(val_ids)
 
-            train_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, drop_last=True, sampler=train_subsampler)
-            valid_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, drop_last=True, sampler=val_subsampler)
+            train_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, 
+                                      timeout=0, drop_last=True, sampler=train_subsampler)
+            valid_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, 
+                                      timeout=0, drop_last=True, sampler=val_subsampler)
 
             print('Size of train loader: ', len(train_loader), 'and val loader: ', len(valid_loader))
             if len(args.input_data)==1:
@@ -461,7 +463,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', type=int, default=8)
     parser.add_argument('--input-dim', type=int, nargs="*", default=[4])
     parser.add_argument('--sequence-length', type=int, default=74)
-    parser.add_argument('--num-workers', type=int, default=8)
+    parser.add_argument('--num-workers', type=int, default=0, help='Timeout if > 0 for combined dataset')
     parser.add_argument('--ndvi', type=int, default=0, choices=[0, 1])
     parser.add_argument('--nri', type=int, default=0, choices=[0, 1])
     parser.add_argument('--drop-channels', type=int, default=0, choices=[0, 1]) # if set then ndvi and/or nri also need to be set and input-dim set to 1
