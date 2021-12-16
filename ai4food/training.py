@@ -262,7 +262,7 @@ def main(args):
             
     else:
         # instatiate the model
-        if len(args.input_data)==1: mmodel = PseLTae(**model_config)  #PseTae(**model_config) # 
+        if len(args.input_data)==1: model = PseLTae(**model_config)  #PseTae(**model_config) # 
         elif len(args.input_data)==2: model = PseLTaeCombinedPlanetS1(**model_config)
         else: model = PseLTaeCombinedPlanetS1S2(**model_config)
 
