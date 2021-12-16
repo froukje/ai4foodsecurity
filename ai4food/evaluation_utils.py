@@ -252,14 +252,20 @@ def save_predictions(target_dir, model, data_loader, device, label_ids, label_na
                         if len(args.input_data)==1:
                             (x_p, mask, fid, extra_features), _ = batch
                             
-                            if args.include_extras: logits = model(((x_p.to(device), mask.to(device)), extra_features.to(device)))  
-                            else: logits = model((x_p.to(device), mask.to(device)))
+                            if args.include_extras: 
+                                logits = model(((x_p.to(device), mask.to(device)), extra_features.to(device)))  
+                            else: 
+                                logits = model((x_p.to(device), mask.to(device)))
                         # for combined model - current implementation wo extra features
                         elif len(args.input_data)==2:
                             sample_planet, sample_s1 = batch
-                            (x_p, mask_p, fid), _ = sample_planet
-                            (x_s1, mask_s1, _), _ = sample_s1
-                            logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
+                            (x_p, mask_p, fid, extra_features), _ = sample_planet
+                            (x_s1, mask_s1, _, _), _ = sample_s1
+
+                            if args.include_extras:
+                                logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device)), extra_features.to(device)))
+                            else:
+                                logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
                         elif len(args.input_data)==3:
                             sample_planet, sample_s1, sample_s2 = batch
                             (x_p, mask_p, fid), _ = sample_planet

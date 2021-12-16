@@ -42,9 +42,14 @@ class EarthObservationDataset(Dataset):
             crop_area = []
             crop_len  = []
 
+            extras_fid = extras["fid"].values
+            extras_crop_area = extras["NORMALIZED_SHAPE_AREA"].values
+            extras_crop_len = extras["NORMALIZED_SHAPE_LEN"].values
+
             for ii, ffid in enumerate(self.fid):
-                crop_area.extend(extras.loc[extras["fid"] == ffid]["NORMALIZED_SHAPE_AREA"].values)
-                crop_len.extend(extras.loc[extras["fid"]  == ffid]["NORMALIZED_SHAPE_LEN"].values)
+                ix = np.where(extras_fid==ffid)[0][0]
+                crop_area.append(extras_crop_area[ix])
+                crop_len.append(extras_crop_len[ix])
 
                 if ii%(len(self.fid)//20) == 0:
                     print(f'... finished {ii:8d}/{len(self.fid):8d} entries ({ii/len(self.fid)*100:.1f} %)')
