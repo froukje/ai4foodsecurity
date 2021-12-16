@@ -263,7 +263,8 @@ def save_predictions(target_dir, model, data_loader, device, label_ids, label_na
                             (x_s1, mask_s1, _, _), _ = sample_s1
 
                             if args.include_extras:
-                                logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device)), extra_features.to(device)))
+                                logits = model((((x_p.to(device), mask_p.to(device)), extra_features.to(device)),
+                                                ((x_s1.to(device), mask_s1.to(device)), extra_features.to(device))))
                             else:
                                 logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
                         elif len(args.input_data)==3:
