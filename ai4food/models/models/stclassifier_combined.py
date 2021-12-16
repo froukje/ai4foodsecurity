@@ -27,18 +27,18 @@ class PseLTaeCombinedPlanetS1S2(nn.Module):
                                            d_model=d_model, n_neurons=mlp3_planet, dropout=dropout,
                                            T=T, len_max_seq=len_max_seq_planet, positions=positions, return_att=return_att
                                            )
-        
-        if with_extra: mlp2[0] = mlp2[0] - extra_size
+        mlp2_copy = mlp2.copy()
+        if with_extra: mlp2_copy[0] = mlp2_copy[0] - extra_size      
             
-        self.spatial_encoder_s1 = PixelSetEncoder(input_dim_s1, mlp1=mlp1_s1, pooling=pooling, mlp2=mlp2, with_extra=False,
+        self.spatial_encoder_s1 = PixelSetEncoder(input_dim_s1, mlp1=mlp1_s1, pooling=pooling, mlp2=mlp2_copy, with_extra=False,
                                                extra_size=extra_size)
-        self.temporal_encoder_s1 = LTAE(in_channels=mlp2[-1], n_head=n_head, d_k=d_k,
+        self.temporal_encoder_s1 = LTAE(in_channels=mlp2_copy[-1], n_head=n_head, d_k=d_k,
                                            d_model=d_model, n_neurons=mlp3_s1, dropout=dropout,
                                            T=T, len_max_seq=len_max_seq_s1, positions=positions, return_att=return_att
                                            )
-        self.spatial_encoder_s2 = PixelSetEncoder(input_dim_s2, mlp1=mlp1_s2, pooling=pooling, mlp2=mlp2, with_extra=False,
+        self.spatial_encoder_s2 = PixelSetEncoder(input_dim_s2, mlp1=mlp1_s2, pooling=pooling, mlp2=mlp2_copy, with_extra=False,
                                                extra_size=extra_size)
-        self.temporal_encoder_s2 = LTAE(in_channels=mlp2[-1], n_head=n_head, d_k=d_k,
+        self.temporal_encoder_s2 = LTAE(in_channels=mlp2_copy[-1], n_head=n_head, d_k=d_k,
                                            d_model=d_model, n_neurons=mlp3_s2, dropout=dropout,
                                            T=T, len_max_seq=len_max_seq_s2, positions=positions, return_att=return_att
                                            )
@@ -107,11 +107,12 @@ class PseLTaeCombinedPlanetS1(nn.Module):
                                            T=T, len_max_seq=len_max_seq_planet, positions=positions, return_att=return_att
                                            )
         
-        if with_extra: mlp2[0] = mlp2[0] - extra_size
+        mlp2_copy = mlp2.copy()
+        if with_extra: mlp2_copy[0] = mlp2_copy[0] - extra_size
         
-        self.spatial_encoder_s1 = PixelSetEncoder(input_dim_s1, mlp1=mlp1_s1, pooling=pooling, mlp2=mlp2, with_extra=False,
+        self.spatial_encoder_s1 = PixelSetEncoder(input_dim_s1, mlp1=mlp1_s1, pooling=pooling, mlp2=mlp2_copy, with_extra=False,
                                                extra_size=extra_size)
-        self.temporal_encoder_s1 = LTAE(in_channels=mlp2[-1], n_head=n_head, d_k=d_k,
+        self.temporal_encoder_s1 = LTAE(in_channels=mlp2_copy[-1], n_head=n_head, d_k=d_k,
                                            d_model=d_model, n_neurons=mlp3_s1, dropout=dropout,
                                            T=T, len_max_seq=len_max_seq_s1, positions=positions, return_att=return_att
                                            )
