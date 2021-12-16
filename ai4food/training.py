@@ -335,6 +335,11 @@ def get_pselatae_model_config(args, verbose=False):
             lms = 41
         elif args.nr_classes == 9: # germany
             lms = 122
+    else:    # sentinel-2
+        if args.nr_classes == 5: # south africa
+            lms = 76
+        #elif args.nr_classes == 9: # germany
+            #lms = 122
     
     if len(args.input_data)==1:
         model_config = dict(input_dim = args.input_dim[0], 
@@ -452,7 +457,7 @@ if __name__ == '__main__':
     parser.add_argument('--target-dir', type=str, default='.')
     parser.add_argument('--split', type=str, default='test', choices=['train', 'test']) 
     parser.add_argument('--k-folds', type=int, default=5)
-    parser.add_argument('--majority', type=int, default=0, choices=[0,1])
+    parser.add_argument('--majority', type=int, default=1, choices=[0,1])
     parser.add_argument('--nni', action='store_true', default=False)
     parser.add_argument('--save-preds', action='store_true', default=False) 
     parser.add_argument('--save-ref', action='store_true', default=False) 

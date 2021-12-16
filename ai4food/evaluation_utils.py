@@ -272,7 +272,10 @@ def save_predictions(target_dir, model, data_loader, device, label_ids, label_na
                             (x_p, mask_p, fid, extra_features), _ = sample_planet
                             (x_s1, mask_s1, _, _), _ = sample_s1
                             (x_s2, mask_s2, _, _), _ = sample_s2
-                            logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device))))           
+                            if args.include_extras: 
+                                logits = model((((x_p.to(device), mask_p.to(device)), extra_features.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device)))) 
+                            else:
+                                logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device))))           
                         
                         batch_s = x_p.size(0)
                         for i in range(logits.size()[0]):

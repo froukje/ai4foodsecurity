@@ -94,9 +94,9 @@ class Sentinel2Dataset(EarthObservationDataset):
             if args.drop_channels:
                 self.X = ndvi
             else:
-                self.X = np.concatenate([np.expand_dims(self.X[:, :, 7, :], axis=2), np.expand_dims(self.X[:, :, 3, :], axis=2), ndvi], axis=2)
+                #self.X = np.concatenate([np.expand_dims(self.X[:, :, 7, :], axis=2), np.expand_dims(self.X[:, :, 3, :], axis=2), ndvi], axis=2)
                 
-            # self.X = np.concatenate([self.X,ndvi], axis=2)
+                self.X = np.concatenate([self.X,ndvi], axis=2)
 
 
     @staticmethod
