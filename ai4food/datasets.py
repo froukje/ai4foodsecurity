@@ -57,6 +57,19 @@ class EarthObservationDataset(Dataset):
             self.extra_features = np.array([crop_area, crop_len]).T
         else:
             self.extra_features = None
+            
+        self.augmentation = args.augmentation
+        if self.augmentation:
+            '''
+            paper: For aug- mentation purpose, we add a random Gaussian noise to x(t) with standard deviation 10−2 and clipped to 5.10−2 on the values of the pixels, normalized channel-wise and for each date individually.
+            '''
+            self.gaussian_noise_aug = AddGaussianNoise(mean=0, std=0.01)
+        
+        '''
+        # normalization of datasets min-max
+        xmin=np.min(self.X, axis=(0,2,3))
+        xmax=np.min(self.X, axis=(0,2,3))
+        '''
     
     def __len__(self):
         return len(self.labels) 
@@ -70,6 +83,9 @@ class EarthObservationDataset(Dataset):
         if self.extra_features is not None:
             extra_f = self.extra_features[idx]
         else: extra_f = np.zeros_like(1)
+        
+        if self.augmentation:
+            X = self.gaussian_noise_aug(X)
             
         return (X, mask, fid, extra_f), label
 
@@ -209,37 +225,14 @@ class CombinedDataset(Dataset):
         return tuple(d[idx] for d in self.datasets)
 
     
-'''
-# this is necessary only when s1 and planet data samples don't match
-lengths0 = len(self.datasets[0])
-lengths1 = len(self.datasets[1])
-
-if lengths0!=lengths1:
-    fids0 = self.datasets[0].fid
-    fids1 = self.datasets[1].fid
-    not_in_fid1 = np.setdiff1d(fids0,fids1)
-    not_in_fid0 = np.setdiff1d(fids1,fids0) 
-    u,c=np.unique(fids0, return_counts=True)
-    dup=u[c>1]
-    where_rem=[np.where(fids0==dup)[0][-1]]
-    for it in not_in_fid1:
-        where_rem.append(np.where(fids0==it)[0][0])
-
-    self.datasets[0].X = np.delete(self.datasets[0].X, where_rem, axis=0)
-    self.datasets[0].mask = np.delete(self.datasets[0].mask, where_rem, axis=0)
-    self.datasets[0].fid = np.delete(self.datasets[0].fid, where_rem)
-    self.datasets[0].labels = np.delete(self.datasets[0].labels, where_rem)
-
-sorted0_ids = self.datasets[0].fid.argsort()
-sorted1_ids = self.datasets[1].fid.argsort()
-
-self.datasets[0].X = self.datasets[0].X[sorted0_ids]
-self.datasets[0].mask = self.datasets[0].mask[sorted0_ids]
-self.datasets[0].fid = self.datasets[0].fid[sorted0_ids]
-self.datasets[0].labels = self.datasets[0].labels[sorted0_ids]
-
-self.datasets[1].X = self.datasets[1].X[sorted1_ids]
-self.datasets[1].mask = self.datasets[1].mask[sorted1_ids]
-self.datasets[1].fid = self.datasets[1].fid[sorted1_ids]
-self.datasets[1].labels = self.datasets[1].labels[sorted1_ids]
-'''
+class AddGaussianNoise(object):
+    def __init__(self, mean=0., std=1.):
+        self.std = std
+        self.mean = mean
+        
+    def __call__(self, X):
+        res = (X + np.random.normal(size=X.shape) * self.std + self.mean).astype(np.float32)
+        return res
+    
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)

@@ -89,7 +89,6 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
     """
     model.train()
     losses = list()
-    eval_metrics = list()
     with tqdm(enumerate(dataloader), total=len(dataloader),position=0, leave=True, disable=True) as iterator:
         for idx, batch in iterator:
             optimizer.zero_grad()
@@ -126,12 +125,10 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
 
             loss = criterion(logprobs, y_true)
             loss.backward()
-            eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
-            eval_metrics.append(eval_metric)
             optimizer.step()
             iterator.set_description(f"train loss={loss:.2f}")
             losses.append(loss)
-    return torch.stack(losses), torch.stack(eval_metrics)
+    return torch.stack(losses)
 
 
 def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
@@ -148,7 +145,6 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
     model.eval()
     with torch.no_grad():
         losses = list()
-        eval_metrics = list()
         y_true_list = list()
         y_pred_list = list()
         y_score_list = list()
@@ -185,14 +181,12 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
                 loss = criterion(logprobs, y_true.to(device))
                 iterator.set_description(f"valid loss={loss:.2f}")
                 losses.append(loss)
-                eval_metric = bin_cross_entr_each_crop(logprobs, y_true, classes, device, args)
-                eval_metrics.append(eval_metric)
                 y_true_list.append(y_true)
                 y_pred_list.append(logprobs.argmax(-1))
                 y_score_list.append(logprobs.exp())
                 field_ids_list.append(field_id)
                 
-        return torch.stack(losses), torch.cat(y_true_list), torch.cat(y_pred_list), torch.cat(y_score_list), torch.cat(field_ids_list), torch.stack(eval_metrics)
+        return torch.stack(losses), torch.cat(y_true_list), torch.cat(y_pred_list), torch.cat(y_score_list), torch.cat(field_ids_list)
 
 
 def save_reference(data_loader, device, label_ids, label_names, args):

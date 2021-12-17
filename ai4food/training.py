@@ -46,7 +46,7 @@ def reset_weights(m):
 def main(args):
     
     # setting seeds for reproducability and method comparison
-    np.random.seed(1)
+    #np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed_all(1)
     # construct the dataset
@@ -93,7 +93,7 @@ def main(args):
         weights_for_samples = weights_for_samples/np.sum(weights_for_samples)*no_of_classes 
         print('Use sample weights', weights_for_samples)
         weights_for_samples = torch.Tensor(weights_for_samples).to(device) 
-        criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="mean") 
+        criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="sum") #reduction="mean") 
         #criterion = nn.NLLLoss(reduction='sum')
 
         if len(args.input_data)==1:
@@ -114,7 +114,6 @@ def main(args):
             
             # training
             best_loss = np.inf
-            best_metric = np.inf
             best_epoch = 0
             patience_count = 0
             all_train_losses = []
@@ -174,17 +173,16 @@ def main(args):
                 start_time = time.time()
                 print(f'\nEpoch: {epoch}')
                 classes = len(label_ids)
-                train_loss, train_metric = train_epoch(model, optimizer, train_loader, classes, criterion, args, device=device)
+                train_loss = train_epoch(model, optimizer, train_loader, classes, criterion, args, device=device)
                 train_loss = train_loss.cpu().detach().numpy()[0]
-                train_metric = train_metric.cpu().detach().numpy()[0]
                 all_train_losses.append(train_loss)
 
                 print(f'Training took {(time.time() - start_time) / 60:.2f} minutes, \
-                        train_loss: {train_loss:.4}, eval_metric: {train_metric:.4}')
+                        train_loss: {train_loss:.4}')
                 start_time = time.time()
 
                 # validation
-                valid_loss, y_true, y_pred, *_, valid_metric = validation_epoch(model, 
+                valid_loss, y_true, y_pred, *_ = validation_epoch(model, 
                                                                                 valid_loader, 
                                                                                 classes, 
                                                                                 criterion,
@@ -192,7 +190,6 @@ def main(args):
                                                                                 device=device)
                 valid_loss = valid_loss.cpu().detach().numpy()[0]
                 assert not np.isnan(valid_loss)
-                valid_metric = valid_metric.cpu().detach().numpy()[0]
                 all_valid_losses.append(valid_loss)
 
                 # calculate metrics
@@ -206,7 +203,7 @@ def main(args):
                 for key, value in scores.items():
                     print(f'{key:20s}: {value}')
                 print(f'Validation took {(time.time() - start_time) / 60:.2f} minutes, \
-                        valid_loss: {valid_loss:.4f}, eval_metric {valid_metric:.4}')
+                        valid_loss: {valid_loss:.4f}')
                 # nni
                 if args.nni:
                     pass # do not report intermediate result here
@@ -215,7 +212,6 @@ def main(args):
                 # early stopping
                 if valid_loss < best_loss:
                     best_loss = valid_loss
-                    best_metric = valid_metric
                     best_epoch = epoch
                     best_model = copy.deepcopy(model)
                     best_optimizer = copy.deepcopy(optimizer)
@@ -226,7 +222,7 @@ def main(args):
 
                 if patience_count == args.patience:
                     print(f'no improvement for {args.patience} epochs -> early stopping')
-                    print(f'best metric: {best_metric:.2f} and best loss: {best_loss:.2f} at epoch: {best_epoch}')
+                    print(f'best loss: {best_loss:.2f} at epoch: {best_epoch}')
                     break
 
                 # save checkpoints
@@ -236,8 +232,8 @@ def main(args):
 
             # nni
             if args.nni:
-                k_best_metrics.append(best_metric)
-                nni.report_intermediate_result(best_metric)
+                k_best_metrics.append(best_loss)
+                nni.report_intermediate_result(best_loss)
 
             # save best model
             save_model_path = os.path.join(args.target_dir, f'best_model_fold_{fold}.pt') 
@@ -472,6 +468,7 @@ if __name__ == '__main__':
     parser.add_argument('--nri', type=int, default=0, choices=[0, 1])
     parser.add_argument('--drop-channels', type=int, default=0, choices=[0, 1]) # if set then ndvi and/or nri also need to be set and input-dim set to 1
     parser.add_argument('--fill-value', type=bool, default=0)
+    parser.add_argument('--augmentation', type=int, default=0, choices=[0,1]) # add gaussian noise to samples
     # for pseltae model
     parser.add_argument('--include-extras', type=int, default=0, choices=[0, 1])
     parser.add_argument('--learning-rate', type=float, default=1e-3, help='In Adam optimizer')
