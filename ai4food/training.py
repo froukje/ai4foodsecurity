@@ -417,7 +417,7 @@ def get_pselatae_model_config(args, verbose=False):
                             # Number of neurons in the layers of MLP3
                             mlp3_planet = [args.n_head*args.factor, args.mlp3_out],
                             mlp3_s1 = [args.n_head*args.factor, int(args.scale*args.mlp3_s1_out)], 
-                            mlp3_s2 = [args.n_head*args.factor, int(args.scale*args.mlp3_s2_out)],
+                            mlp3_s2 = [args.n_head*args.factor, int(args.scale_s2*args.mlp3_s2_out)],
                             # Dropout probability
                             dropout = args.dropout,
                             # Maximum period for the positional encoding
@@ -429,7 +429,7 @@ def get_pselatae_model_config(args, verbose=False):
                             # Positions to use for the positional encoding (bespoke / order)
                             positions = None, #dt.date_positions if config['positions'] == 'bespoke' else None,
                             # Number of neurons in the layers of MLP4
-                            mlp4 = [args.mlp3_out+int(args.scale*args.mlp3_s1_out)+int(args.scale*args.mlp3_s2_out), args.mlp4_1, args.mlp4_2, args.nr_classes],
+                            mlp4 = [args.mlp3_out+int(args.scale*args.mlp3_s1_out)+int(args.scale_s2*args.mlp3_s2_out), args.mlp4_1, args.mlp4_2, args.nr_classes],
                             # size of the embeddings (E), if input vectors are of a different size, 
                              # a linear layer is used to project them to a d_model-dimensional space
                             d_model = args.n_head*args.factor)
@@ -491,9 +491,13 @@ if __name__ == '__main__':
     parser.add_argument('--mlp4-2', type=int, default=32)
     parser.add_argument('--factor', type=int, default=16)
     parser.add_argument('--scale', type=float, default=0.25)
+    parser.add_argument('--scale-s2', type=float, default=0.25, help='Scale for Sentinel 2')
     parser.add_argument('--nr-classes', type=int, choices=[5,9], default=5, help='Expected number of classes (S: 5, G: 9)')
     # pool only working for default value!
     parser.add_argument('--pool', type=str, default='mean_std', choices=['mean_std', 'mean', 'std', 'max', 'min'])
+    # sentinel-2 interpolation
+    parser.add_argument('--sentinel-2-spline', type=int, default=1, choices=[1,2,3,4,5], help='Spline for Sentinel 2 interpolation')
+    parser.add_argument('--cloud-probability-threshold', type=float, default=0.1, help='Cloud probability threshold for Sentinel 2 interpolation')
     args = parser.parse_args()
 
     if args.nni:
