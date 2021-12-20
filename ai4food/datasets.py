@@ -215,7 +215,7 @@ class Sentinel1Dataset(EarthObservationDataset):
     def __init__(self, args):
         super().__init__(args)
         if args.nri:
-            nri = Sentinel1Dataset._calc_rvi(self.X)
+            nri = Sentinel1Dataset._calc_rvi(self.X, self.args.savgol_filter)
             nri = np.expand_dims(nri, axis=2) # changed axis from 1 to 2
             if args.drop_channels:
                 self.X = nri
@@ -223,13 +223,16 @@ class Sentinel1Dataset(EarthObservationDataset):
                 self.X = np.concatenate([self.X, nri], axis=2) # changed axis from 1 to 2  
                 
     @staticmethod
-    def _calc_rvi(X):
+    def _calc_rvi(X, rvi_filter=False):
         VV = X[:,:,0,:]
         VH = X[:,:,1,:]
         dop = (VV/(VV+VH))
         m = 1 - dop
         radar_vegetation_index = (np.sqrt(dop))*((4*(VH))/(VV+VH))
         radar_vegetation_index = np.nan_to_num(radar_vegetation_index)
+
+        if not rvi_filter:
+            return radar_vegetation_index
 
         start_time = time.time()
 

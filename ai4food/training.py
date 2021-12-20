@@ -498,6 +498,7 @@ if __name__ == '__main__':
     # sentinel-2 interpolation
     parser.add_argument('--sentinel-2-spline', type=int, default=1, choices=[1,2,3,4,5], help='Spline for Sentinel 2 interpolation')
     parser.add_argument('--cloud-probability-threshold', type=float, default=0.1, help='Cloud probability threshold for Sentinel 2 interpolation')
+    parser.add_argument('--savgol-filter', type=int, default=0, choices=[0, 1], help='Use Savitzky Golay filter for Sentinel 1 RVI smoothing')
     args = parser.parse_args()
 
     if args.nni:
