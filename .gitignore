@@ -16,11 +16,15 @@ ai4food/validation.json
 ai4food/submission.json
 ai4food/submission_val.json
 ai4food/reference_val.json
+ai4food/reference_test.json
 ai4food/__pycache__/
 ai4food/models/models/__pycache__/
 ai4food/epoch*
+ai4food/train_*
 ai4food/dataloaders/__pycache__/
 ai4food/models/models/__pycache__/*
+notebooks/final/.ipynb_checkpoints/*
+notebooks/submission/.ipynb_checkpoints/*
 images/*
 nni/*
 jobs/*
