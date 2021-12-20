@@ -25,8 +25,8 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
-from sklearn.model_selection import KFold, StratifiedKFold
-from datasets import EarthObservationDataset, PlanetDataset, Sentinel2Dataset, Sentinel1Dataset, CombinedDataset
+from sklearn.model_selection import KFold
+from datasets import CombinedDataset, AddGaussianNoise
 
 import numpy as np
 import geopandas as gpd
@@ -47,14 +47,11 @@ def reset_weights(m):
 def main(args):
     
     # setting seeds for reproducability and method comparison
-    #np.random.seed(1)
-    torch.manual_seed(1)
+    np.random.seed(1)
+    if not args.augmentation: torch.manual_seed(1)
     torch.cuda.manual_seed_all(1)
     # construct the dataset
-    if len(args.input_data)==1:
-        test_dataset = PlanetDataset(args) 
-    else:
-        test_dataset = CombinedDataset(args) 
+    test_dataset = CombinedDataset(args) 
 
     if args.nr_classes == 5:
         label_ids = [1, 2, 3, 4, 5]
@@ -75,10 +72,7 @@ def main(args):
     if args.split=='train':
 
         print('Labels in train and valid / (test)')
-        if len(args.input_data)==1:
-            (unique, counts) = np.unique(test_dataset[:][1], return_counts=True)
-        else:
-            (unique, counts) = np.unique(test_dataset[:][0][1], return_counts=True)
+        (unique, counts) = np.unique(test_dataset[:][0][1], return_counts=True)
         frequencies = np.asarray((unique, counts)).T
         print(frequencies)
         
@@ -94,20 +88,28 @@ def main(args):
         weights_for_samples = weights_for_samples/np.sum(weights_for_samples)*no_of_classes 
         print('Use sample weights', weights_for_samples)
         weights_for_samples = torch.Tensor(weights_for_samples).to(device) 
+        
         #criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="sum") #reduction="mean") 
         if args.alpha:
             alpha = weights_for_samples
         else:
             alpha = None
         criterion = FocalLoss(gamma=args.gamma, alpha=alpha) # gamma can be set as a hyperparamter
+        unique_field_ids = np.unique(test_dataset.datasets[0].fid)
+        all_field_ids = test_dataset.datasets[0].fid
 
-        if len(args.input_data)==1:
-            unique_field_ids = np.unique(test_dataset.fid)
-            all_field_ids = test_dataset.fid
-        else:
-            unique_field_ids = np.unique(test_dataset.datasets[0].fid)
-            all_field_ids = test_dataset.datasets[0].fid
         print('Identified unique field IDs: ', len(unique_field_ids))
+        
+        if args.augmentation:
+            '''
+            paper: For augmentation purpose, we add a random Gaussian noise to x(t) with standard deviation 10−2 and 
+            clipped to 5.10−2 on the values of the pixels, normalized channel-wise and for each date individually.
+            
+            We are currently not clipping 
+            '''
+            gaussian_noise_aug = AddGaussianNoise(mean=0, std=0.01)
+        else: gaussian_noise_aug = None
+            
         
         kfold = KFold(n_splits=args.k_folds, shuffle=True, random_state=7) #StratifiedKFold(n_splits=args.k_folds, shuffle=True) 
 
@@ -149,17 +151,12 @@ def main(args):
                                       timeout=0, drop_last=True, sampler=val_subsampler)
 
             print('Size of train loader: ', len(train_loader), 'and val loader: ', len(valid_loader))
-            if len(args.input_data)==1:
-                (unique, counts) = np.unique(test_dataset[train_ids][1], return_counts=True)
-            else:
-                (unique, counts) = np.unique(test_dataset[train_ids][0][1], return_counts=True)
+            (unique, counts) = np.unique(test_dataset[train_ids][0][1], return_counts=True)
+
+
             frequencies = np.asarray((unique, counts)).T
             print('Labels in train: ',frequencies)
-
-            if len(args.input_data)==1:
-                (unique, counts) = np.unique(test_dataset[val_ids][1], return_counts=True)
-            else:
-                (unique, counts) = np.unique(test_dataset[val_ids][0][1], return_counts=True)
+            (unique, counts) = np.unique(test_dataset[val_ids][0][1], return_counts=True)
             frequencies = np.asarray((unique, counts)).T
             print('Labels in validation: ',frequencies)
 
@@ -178,7 +175,7 @@ def main(args):
                 start_time = time.time()
                 print(f'\nEpoch: {epoch}')
                 classes = len(label_ids)
-                train_loss = train_epoch(model, optimizer, train_loader, classes, criterion, args, device=device)
+                train_loss = train_epoch(model, optimizer, train_loader, classes, criterion, args, device=device, gaussian_noise_aug=gaussian_noise_aug)
                 train_loss = train_loss.cpu().detach().numpy()[0]
                 all_train_losses.append(train_loss)
 
@@ -340,7 +337,7 @@ def get_pselatae_model_config(args, verbose=False):
         if args.nr_classes == 5: # south africa
             lms = 76
         #elif args.nr_classes == 9: # germany
-            #lms = 122
+            #lms = 122 -> check!!!
     
     if len(args.input_data)==1:
         model_config = dict(input_dim = args.input_dim[0], 
@@ -395,7 +392,7 @@ def get_pselatae_model_config(args, verbose=False):
                             T = 1000, 
                             # Maximum sequence length for positional encoding (only necessary if positions == order)
                             len_max_seq_planet = lms, 
-                            len_max_seq_s1 = 41,
+                            len_max_seq_s1 = 41 if args.nr_classes==5 else 122,
                             # Positions to use for the positional encoding (bespoke / order)
                             positions = None, #dt.date_positions if config['positions'] == 'bespoke' else None,
                             # Number of neurons in the layers of MLP4
@@ -422,19 +419,19 @@ def get_pselatae_model_config(args, verbose=False):
                             # Number of neurons in the layers of MLP3
                             mlp3_planet = [args.n_head*args.factor, args.mlp3_out],
                             mlp3_s1 = [args.n_head*args.factor, int(args.scale*args.mlp3_s1_out)], 
-                            mlp3_s2 = [args.n_head*args.factor, int(args.scale*args.mlp3_s2_out)],
+                            mlp3_s2 = [args.n_head*args.factor, int(args.scale_s2*args.mlp3_s2_out)],
                             # Dropout probability
                             dropout = args.dropout,
                             # Maximum period for the positional encoding
                             T = 1000, 
                             # Maximum sequence length for positional encoding (only necessary if positions == order) 
                             len_max_seq_planet = lms, 
-                            len_max_seq_s1 = 41,
+                            len_max_seq_s1 = 41 if args.nr_classes==5 else 122,
                             len_max_seq_s2 = 76,
                             # Positions to use for the positional encoding (bespoke / order)
                             positions = None, #dt.date_positions if config['positions'] == 'bespoke' else None,
                             # Number of neurons in the layers of MLP4
-                            mlp4 = [args.mlp3_out+int(args.scale*args.mlp3_s1_out)+int(args.scale*args.mlp3_s2_out), args.mlp4_1, args.mlp4_2, args.nr_classes],
+                            mlp4 = [args.mlp3_out+int(args.scale*args.mlp3_s1_out)+int(args.scale_s2*args.mlp3_s2_out), args.mlp4_1, args.mlp4_2, args.nr_classes],
                             # size of the embeddings (E), if input vectors are of a different size, 
                              # a linear layer is used to project them to a d_model-dimensional space
                             d_model = args.n_head*args.factor)
@@ -496,11 +493,16 @@ if __name__ == '__main__':
     parser.add_argument('--mlp4-2', type=int, default=32)
     parser.add_argument('--factor', type=int, default=16)
     parser.add_argument('--scale', type=float, default=0.25)
+    parser.add_argument('--scale-s2', type=float, default=0.25, help='Scale for Sentinel 2')
     parser.add_argument('--nr-classes', type=int, choices=[5,9], default=5, help='Expected number of classes (S: 5, G: 9)')
     # pool only working for default value!
     parser.add_argument('--pool', type=str, default='mean_std', choices=['mean_std', 'mean', 'std', 'max', 'min'])
     parser.add_argument('--alpha', action='store_true', default=False)
     parser.add_argument('--gamma', type=int, default=1)
+    # sentinel-2 interpolation
+    parser.add_argument('--sentinel-2-spline', type=int, default=1, choices=[1,2,3,4,5], help='Spline for Sentinel 2 interpolation')
+    parser.add_argument('--cloud-probability-threshold', type=float, default=0.1, help='Cloud probability threshold for Sentinel 2 interpolation')
+    parser.add_argument('--savgol-filter', type=int, default=0, choices=[0, 1], help='Use Savitzky Golay filter for Sentinel 1 RVI smoothing')
     args = parser.parse_args()
 
     if args.nni:
