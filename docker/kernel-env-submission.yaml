@@ -7,16 +7,12 @@ channels:
 dependencies:
   - pandas==1.0.1
   - matplotlib==3.3.2
-  - tensorboard==2.4.0
-  - pytorch==1.9.0
-  - torchvision==0.10.0
   - numpy
   - sh==1.14.2
     #- radiant-mlhub==0.3.0
   # platform basic requirement
   - ipykernel=5.3.4
 
-  - 'cudatoolkit=11.1'
   - pip
     # have to see if the above works on the vader nodes
     #- pytorch
@@ -32,6 +28,8 @@ dependencies:
     - nni==2.3
     - geopandas==0.8.2
     - rasterio==1.1.8
+    - torch==1.9.0
+    - jupyter
 
     # install via pip because according to iot-salzburg/gpu-jupyter conda install leads to errors
     # have to see if the above works on the vader nodes

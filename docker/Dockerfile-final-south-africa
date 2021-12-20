@@ -50,10 +50,6 @@ RUN conda update --name base --channel defaults conda && \
     conda env create --file /tmp/kernel-env-submission.yaml --force && \
     conda clean --all --yes
 
-ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
-
-# # default command will launch JupyterLab server for development
-# CMD [ "jupyter", "lab", "--no-browser", "--ip", "0.0.0.0" ]
 # install kernel
 RUN conda run -n "${ENV_NAME}" python -m ipykernel install --name "EDC-GPU" --display-name "EDC-GPU ${DOCKER_TAG} (Python3)"
 	
@@ -73,9 +69,9 @@ kernel_json = f'/usr/local/share/jupyter/kernels/edc-gpu/kernel.json'; \
 update = {'env': {'PATH': new_path}, 'metadata': {'version': '${DOCKER_TAG}'}}; \
 json.dump({**json.load(open(kernel_json)), **update}, open(kernel_json, 'w'), indent=4)"
 
-ADD jupyter-user/edc.py .
-RUN mv edc.py /opt/conda/envs/"${ENV_NAME}"/lib/python*/site-packages
-USER $NB_UID
+#	ADD docker/edc.py .
+#	RUN mv edc.py /opt/conda/envs/"${ENV_NAME}"/lib/python*/site-packages
+#	USER $NB_UID
 
 # Add the final notebook
 # Add the best model
@@ -101,7 +97,7 @@ COPY ./ai4food/models/models/stclassifier_combined.py .
 COPY ./ai4food/training.py .
 COPY ./ai4food/evaluation_utils.py .
 
+ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
 
-
-
-
+#	CMD ["jupyter", "lab", "--port=8889", "--no-browser", "--ip=0.0.0.0", "--allow-root"]
+CMD jupyter notebook --port=8888 --allow-root
