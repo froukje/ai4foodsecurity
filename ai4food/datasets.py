@@ -5,8 +5,10 @@ import h5py
 import os
 import numpy as np
 import geopandas as gpd
+import time
 
 from scipy.interpolate import splrep, splev
+from scipy.signal import savgol_filter
 
 class EarthObservationDataset(Dataset):
     '''
@@ -112,17 +114,13 @@ class Sentinel2Dataset(EarthObservationDataset):
         ix_B4 = band_names.index('B04')
 
         ndvi = Sentinel2Dataset._calc_two_band_index(self.X, ix_B8, ix_B4)
-        np.save('debug_before_ndvi', ndvi)
 
         # pixel-wise interpolation
         clp = self.X[:, :, -1, :] # cloud probability is attached as the last band
         clp = clp * 1e4 / 255 # transform to clp in [0 ... 1] where 1 = fully covered by clouds
 
-
         ndvi = Sentinel2Dataset._interpolate(ndvi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
-        
 
-        np.save('debug_smooth_ndvi', ndvi)
         self.X = ndvi
 
     @staticmethod
@@ -182,8 +180,9 @@ class Sentinel2Dataset(EarthObservationDataset):
         n_t = normalized_index.shape[1]
         x = np.arange(n_t)
 
+        start_time=time.time()
+
         for sample_ix in range(normalized_index.shape[0]):
-            print(f'... interpolating sample {sample_ix}')
             for pixel_ix in range(normalized_index.shape[-1]):
                 y = normalized_index[sample_ix, :, 0, pixel_ix] # measured normalized_index for this pixel
                 c = cloud_probability[sample_ix, :, pixel_ix] # cloud probability for this pixel
@@ -204,6 +203,8 @@ class Sentinel2Dataset(EarthObservationDataset):
 
                 # replace the index with the interpolated index
                 normalized_index[sample_ix, :, 0, pixel_ix] = interp_y1
+
+        print(f'Interpolated INDEX for {normalized_index.shape[0]} samples with {normalized_index.shape[-1]} pixels in {time.time() - start_time:.1f} seconds')
 
         return normalized_index
 
@@ -229,6 +230,20 @@ class Sentinel1Dataset(EarthObservationDataset):
         m = 1 - dop
         radar_vegetation_index = (np.sqrt(dop))*((4*(VH))/(VV+VH))
         radar_vegetation_index = np.nan_to_num(radar_vegetation_index)
+
+        start_time = time.time()
+
+        print('Start to apply Savitzky Golay Filter to Sentinel-1 RVI')
+        for i in range(radar_vegetation_index.shape[0]):
+            for j in range(radar_vegetation_index.shape[-1]):
+                tmp = radar_vegetation_index[i, :, j]
+
+                smooth_rvi = savgol_filter(tmp, 15, 3)
+
+                radar_vegetation_index[i, :, j] = smooth_rvi
+
+        print('Applied Savitzky Golay Filter to Sentinel-1 RVI in {time.time() - start_time:.1f} seconds')
+
         return radar_vegetation_index
 
 
