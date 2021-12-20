@@ -24,8 +24,8 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
-from sklearn.model_selection import KFold, StratifiedKFold
-from datasets import EarthObservationDataset, PlanetDataset, Sentinel2Dataset, Sentinel1Dataset, CombinedDataset
+from sklearn.model_selection import KFold
+from datasets import CombinedDataset, AddGaussianNoise
 
 import numpy as np
 import geopandas as gpd
@@ -46,14 +46,11 @@ def reset_weights(m):
 def main(args):
     
     # setting seeds for reproducability and method comparison
-    #np.random.seed(1)
-    torch.manual_seed(1)
+    np.random.seed(1)
+    if not args.augmentation: torch.manual_seed(1)
     torch.cuda.manual_seed_all(1)
     # construct the dataset
-    if len(args.input_data)==1:
-        test_dataset = PlanetDataset(args) 
-    else:
-        test_dataset = CombinedDataset(args) 
+    test_dataset = CombinedDataset(args) 
 
     if args.nr_classes == 5:
         label_ids = [1, 2, 3, 4, 5]
@@ -74,10 +71,7 @@ def main(args):
     if args.split=='train':
 
         print('Labels in train and valid / (test)')
-        if len(args.input_data)==1:
-            (unique, counts) = np.unique(test_dataset[:][1], return_counts=True)
-        else:
-            (unique, counts) = np.unique(test_dataset[:][0][1], return_counts=True)
+        (unique, counts) = np.unique(test_dataset[:][0][1], return_counts=True)
         frequencies = np.asarray((unique, counts)).T
         print(frequencies)
         
@@ -93,16 +87,22 @@ def main(args):
         weights_for_samples = weights_for_samples/np.sum(weights_for_samples)*no_of_classes 
         print('Use sample weights', weights_for_samples)
         weights_for_samples = torch.Tensor(weights_for_samples).to(device) 
-        criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="sum") #reduction="mean") 
+        criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="mean")
         #criterion = nn.NLLLoss(reduction='sum')
-
-        if len(args.input_data)==1:
-            unique_field_ids = np.unique(test_dataset.fid)
-            all_field_ids = test_dataset.fid
-        else:
-            unique_field_ids = np.unique(test_dataset.datasets[0].fid)
-            all_field_ids = test_dataset.datasets[0].fid
+        unique_field_ids = np.unique(test_dataset.datasets[0].fid)
+        all_field_ids = test_dataset.datasets[0].fid
         print('Identified unique field IDs: ', len(unique_field_ids))
+        
+        if args.augmentation:
+            '''
+            paper: For augmentation purpose, we add a random Gaussian noise to x(t) with standard deviation 10−2 and 
+            clipped to 5.10−2 on the values of the pixels, normalized channel-wise and for each date individually.
+            
+            We are currently not clipping 
+            '''
+            gaussian_noise_aug = AddGaussianNoise(mean=0, std=0.01)
+        else: gaussian_noise_aug = None
+            
         
         kfold = KFold(n_splits=args.k_folds, shuffle=True, random_state=7) #StratifiedKFold(n_splits=args.k_folds, shuffle=True) 
 
@@ -144,17 +144,12 @@ def main(args):
                                       timeout=0, drop_last=True, sampler=val_subsampler)
 
             print('Size of train loader: ', len(train_loader), 'and val loader: ', len(valid_loader))
-            if len(args.input_data)==1:
-                (unique, counts) = np.unique(test_dataset[train_ids][1], return_counts=True)
-            else:
-                (unique, counts) = np.unique(test_dataset[train_ids][0][1], return_counts=True)
+            (unique, counts) = np.unique(test_dataset[train_ids][0][1], return_counts=True)
+
+
             frequencies = np.asarray((unique, counts)).T
             print('Labels in train: ',frequencies)
-
-            if len(args.input_data)==1:
-                (unique, counts) = np.unique(test_dataset[val_ids][1], return_counts=True)
-            else:
-                (unique, counts) = np.unique(test_dataset[val_ids][0][1], return_counts=True)
+            (unique, counts) = np.unique(test_dataset[val_ids][0][1], return_counts=True)
             frequencies = np.asarray((unique, counts)).T
             print('Labels in validation: ',frequencies)
 
@@ -173,7 +168,7 @@ def main(args):
                 start_time = time.time()
                 print(f'\nEpoch: {epoch}')
                 classes = len(label_ids)
-                train_loss = train_epoch(model, optimizer, train_loader, classes, criterion, args, device=device)
+                train_loss = train_epoch(model, optimizer, train_loader, classes, criterion, args, device=device, gaussian_noise_aug=gaussian_noise_aug)
                 train_loss = train_loss.cpu().detach().numpy()[0]
                 all_train_losses.append(train_loss)
 
@@ -335,7 +330,7 @@ def get_pselatae_model_config(args, verbose=False):
         if args.nr_classes == 5: # south africa
             lms = 76
         #elif args.nr_classes == 9: # germany
-            #lms = 122
+            #lms = 122 -> check!!!
     
     if len(args.input_data)==1:
         model_config = dict(input_dim = args.input_dim[0], 
@@ -390,7 +385,7 @@ def get_pselatae_model_config(args, verbose=False):
                             T = 1000, 
                             # Maximum sequence length for positional encoding (only necessary if positions == order)
                             len_max_seq_planet = lms, 
-                            len_max_seq_s1 = 41,
+                            len_max_seq_s1 = 41 if args.nr_classes==5 else 122,
                             # Positions to use for the positional encoding (bespoke / order)
                             positions = None, #dt.date_positions if config['positions'] == 'bespoke' else None,
                             # Number of neurons in the layers of MLP4
@@ -424,7 +419,7 @@ def get_pselatae_model_config(args, verbose=False):
                             T = 1000, 
                             # Maximum sequence length for positional encoding (only necessary if positions == order) 
                             len_max_seq_planet = lms, 
-                            len_max_seq_s1 = 41,
+                            len_max_seq_s1 = 41 if args.nr_classes==5 else 122,
                             len_max_seq_s2 = 76,
                             # Positions to use for the positional encoding (bespoke / order)
                             positions = None, #dt.date_positions if config['positions'] == 'bespoke' else None,
