@@ -10,6 +10,7 @@ import os
 import sys
 import h5py
 from evaluation_utils import metrics, train_epoch, validation_epoch, save_predictions, save_reference
+from focal_loss import FocalLoss
 
 sys.path.append('../notebooks/starter_files/')
 
@@ -93,8 +94,8 @@ def main(args):
         weights_for_samples = weights_for_samples/np.sum(weights_for_samples)*no_of_classes 
         print('Use sample weights', weights_for_samples)
         weights_for_samples = torch.Tensor(weights_for_samples).to(device) 
-        criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="sum") #reduction="mean") 
-        #criterion = nn.NLLLoss(reduction='sum')
+        #criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="sum") #reduction="mean") 
+        criterion = FocalLoss(gamma=1) # gamma can be set as a hyperparamter
 
         if len(args.input_data)==1:
             unique_field_ids = np.unique(test_dataset.fid)
