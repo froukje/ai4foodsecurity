@@ -96,7 +96,7 @@ def main(args):
         weights_for_samples = torch.Tensor(weights_for_samples).to(device) 
         #criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="sum") #reduction="mean") 
         if args.alpha:
-            alpha = weights_for_sample
+            alpha = weights_for_samples
         else:
             alpha = None
         criterion = FocalLoss(gamma=args.gamma, alpha=alpha) # gamma can be set as a hyperparamter
