@@ -10,6 +10,7 @@ import os
 import sys
 import h5py
 from evaluation_utils import metrics, train_epoch, validation_epoch, save_predictions, save_reference
+from focal_loss import FocalLoss
 
 sys.path.append('../notebooks/starter_files/')
 
@@ -93,8 +94,12 @@ def main(args):
         weights_for_samples = weights_for_samples/np.sum(weights_for_samples)*no_of_classes 
         print('Use sample weights', weights_for_samples)
         weights_for_samples = torch.Tensor(weights_for_samples).to(device) 
-        criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="sum") #reduction="mean") 
-        #criterion = nn.NLLLoss(reduction='sum')
+        #criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="sum") #reduction="mean") 
+        if args.alpha:
+            alpha = weights_for_samples
+        else:
+            alpha = None
+        criterion = FocalLoss(gamma=args.gamma, alpha=alpha) # gamma can be set as a hyperparamter
 
         if len(args.input_data)==1:
             unique_field_ids = np.unique(test_dataset.fid)
@@ -494,6 +499,8 @@ if __name__ == '__main__':
     parser.add_argument('--nr-classes', type=int, choices=[5,9], default=5, help='Expected number of classes (S: 5, G: 9)')
     # pool only working for default value!
     parser.add_argument('--pool', type=str, default='mean_std', choices=['mean_std', 'mean', 'std', 'max', 'min'])
+    parser.add_argument('--alpha', action='store_true', default=False)
+    parser.add_argument('--gamma', type=int, default=1)
     args = parser.parse_args()
 
     if args.nni:
