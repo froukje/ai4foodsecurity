@@ -427,7 +427,7 @@ def get_pselatae_model_config(args, verbose=False):
                             # Maximum sequence length for positional encoding (only necessary if positions == order) 
                             len_max_seq_planet = lms, 
                             len_max_seq_s1 = 41 if args.nr_classes==5 else 118,
-                            len_max_seq_s2 = 76,
+                            len_max_seq_s2 = 76 if args.nr_classes==5 else 144,
                             # Positions to use for the positional encoding (bespoke / order)
                             positions = None, #dt.date_positions if config['positions'] == 'bespoke' else None,
                             # Number of neurons in the layers of MLP4

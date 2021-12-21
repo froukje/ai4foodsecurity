@@ -60,8 +60,13 @@ class EarthObservationDataset(Dataset):
         else:
             self.extra_features = None
 
-        if self.args.nr_classes == 9 and self.args.split == 'train' and self.args.input_data_type == 'extracted':
-            bad_idx = [367, 2323, 1225, 1578]
+        if self.args.nr_classes == 9 and self.args.split == 'train':
+            if self.args.input_data_type == 'extracted':
+                bad_idx = [1225]
+            elif self.args.input_data_type == 'extracted-640':
+                bad_idx = [12250, 12251, 12252, 12253, 12254, 12255, 12256, 12257, 12258, 12259]
+            else:
+                bad_idx = []
             self.X = np.delete(self.X, bad_idx, axis=0)
             self.mask = np.delete(self.mask, bad_idx, axis=0)
             self.fid = np.delete(self.fid, bad_idx, axis=0)
@@ -81,6 +86,7 @@ class EarthObservationDataset(Dataset):
         else: extra_f = np.zeros_like(1)
             
         return (X, mask, fid, extra_f), label
+        # for DEBUG use return (X, mask, fid, extra_f), label, idx
 
 class Sentinel2Dataset(EarthObservationDataset):
     '''

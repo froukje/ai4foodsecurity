@@ -209,9 +209,9 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
                 '''
                 For DEBUGGING only
                 if np.any(np.isnan(logprobs.detach().cpu().numpy())):
-                    for xx in x_s1.detach().cpu().numpy():
-                        print(xx.shape, np.mean(xx), np.max(xx), np.min(xx), np.nanmax(xx), np.nanmin(xx))
-                    print('VALIDATION-DEBUG_LOGPROBS', logprobs)
+                    print('VALIDATION-DEBUG_LOGPROBS\n', '')
+                    for ii, xx, ll in zip(used_idx, x_s1.detach().cpu().numpy(), logprobs):
+                        print(ii, ll, xx.shape, np.mean(xx), np.max(xx), np.min(xx), np.nanmax(xx), np.nanmin(xx))
                     assert False
                 '''
                 loss = criterion(logprobs, y_true.to(device))
