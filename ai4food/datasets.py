@@ -212,6 +212,8 @@ class Sentinel1Dataset(EarthObservationDataset):
         
         #self.X[:,:,0,:]=np.clip(self.X[:,:,0,:], 0, 3e-05)
         #self.X[:,:,1,:]=np.clip(self.X[:,:,1,:], 0, 6e-06)
+
+        self.X = self.X[:, :, :2, :] # only VV and VH (2) is the angle
               
         if args.nri:
             nri = Sentinel1Dataset._calc_rvi(self.X, self.args.savgol_filter)
