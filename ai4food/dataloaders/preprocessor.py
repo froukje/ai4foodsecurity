@@ -284,7 +284,7 @@ class Preprocessor(object):
                 train_dir = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_train_source_sentinel_1', 'dlr_fusion_competition_germany_train_source_sentinel_1_des_33N_18E_242N_2018')
                 test_dir  = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_test_source_sentinel_1', 'dlr_fusion_competition_germany_test_source_sentinel_1_des_33N_17E_243N_2019')
 
-                self.time_size_train = 122 # time steps available
+                self.time_size_train = 118 # time steps available
                 self.time_size_test  = 120
                 self.band_size = 3 # bands available
 

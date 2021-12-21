@@ -130,7 +130,7 @@ class S1Reader(Dataset):
         vv = np.load(os.path.join(rootpath, "vv.npy"))
         vh = np.load(os.path.join(rootpath, "vh.npy"))
         angle = np.load(os.path.join(rootpath, "angle.npy"))
-        bands = np.stack([vv[:,:,:,0],vh[:,:,:,0],angle[:,:,:,0], axis=3)
+        bands = np.stack([vv[:,:,:,0],vh[:,:,:,0],angle[:,:,:,0]], axis=3)
         _, width, height, _ = bands.shape
 
         bands=bands.transpose(0, 3, 1, 2)
