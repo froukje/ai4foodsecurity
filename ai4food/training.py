@@ -332,7 +332,7 @@ def get_pselatae_model_config(args, verbose=False):
         if args.nr_classes == 5: # south africa
             lms = 41
         elif args.nr_classes == 9: # germany
-            lms = 122
+            lms = 118 
     else:    # sentinel-2
         if args.nr_classes == 5: # south africa
             lms = 76
@@ -392,7 +392,7 @@ def get_pselatae_model_config(args, verbose=False):
                             T = 1000, 
                             # Maximum sequence length for positional encoding (only necessary if positions == order)
                             len_max_seq_planet = lms, 
-                            len_max_seq_s1 = 41 if args.nr_classes==5 else 122,
+                            len_max_seq_s1 = 41 if args.nr_classes==5 else 118, 
                             # Positions to use for the positional encoding (bespoke / order)
                             positions = None, #dt.date_positions if config['positions'] == 'bespoke' else None,
                             # Number of neurons in the layers of MLP4
@@ -426,7 +426,7 @@ def get_pselatae_model_config(args, verbose=False):
                             T = 1000, 
                             # Maximum sequence length for positional encoding (only necessary if positions == order) 
                             len_max_seq_planet = lms, 
-                            len_max_seq_s1 = 41 if args.nr_classes==5 else 122,
+                            len_max_seq_s1 = 41 if args.nr_classes==5 else 118,
                             len_max_seq_s2 = 76,
                             # Positions to use for the positional encoding (bespoke / order)
                             positions = None, #dt.date_positions if config['positions'] == 'bespoke' else None,
