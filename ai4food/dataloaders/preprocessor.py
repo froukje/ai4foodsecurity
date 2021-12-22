@@ -244,7 +244,7 @@ class Preprocessor(object):
                                         'ref_fusion_competition_south_africa_test_source_sentinel_1_asc_34S_20E_259N_2017')
 
                 self.time_size_train = 41 # time steps available
-                self.band_size = 2 # bands available
+                self.band_size = 3 # bands available
 
             elif self.args.data_source == 'sentinel-2':
                 tmp = os.path.join(args.raw_data_dir, 'ref_fusion_competition_south_africa_train_source_sentinel_2')
@@ -281,12 +281,12 @@ class Preprocessor(object):
                 self.band_size = 4 # bands available
 
             elif self.args.data_source == 'sentinel-1':
-                train_dir = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_train_source_sentinel_1', 'dlr_fusion_competition_germany_train_source_sentinel_1_asc_33N_18E_242N_2018')
-                test_dir  = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_test_source_sentinel_1', 'dlr_fusion_competition_germany_test_source_sentinel_1_asc_33N_17E_243N_2019')
+                train_dir = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_train_source_sentinel_1', 'dlr_fusion_competition_germany_train_source_sentinel_1_des_33N_18E_242N_2018')
+                test_dir  = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_test_source_sentinel_1', 'dlr_fusion_competition_germany_test_source_sentinel_1_des_33N_17E_243N_2019')
 
-                self.time_size_train = 122 # time steps available
+                self.time_size_train = 118 # time steps available
                 self.time_size_test  = 120
-                self.band_size = 2 # bands available
+                self.band_size = 3 # bands available
 
             elif self.args.data_source == 'sentinel-2':
                 train_dir = os.path.join(self.args.raw_data_dir, 'dlr_fusion_competition_germany_train_source_sentinel_2', 'dlr_fusion_competition_germany_train_source_sentinel_2_33N_18E_242N_2018')

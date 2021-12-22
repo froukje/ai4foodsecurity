@@ -8,6 +8,8 @@ from tqdm import tqdm
 import torch.multiprocessing
 torch.multiprocessing.set_sharing_strategy('file_system')
 
+from torch import autograd
+
 def metrics(y_true, y_pred):
     """
     THIS FUNCTION DETERMINES THE EVALUATION METRICS OF THE MODEL
@@ -132,10 +134,25 @@ def train_epoch(model, optimizer, dataloader, classes, criterion, args, device='
                 else: logprobs = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device))))
             
             y_true = y_true.to(device)
-
             loss = criterion(logprobs, y_true)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
             optimizer.step()
+             
+            '''
+            For DEBUGGING only
+            with autograd.detect_anomaly():
+                nplp = logprobs.detach().cpu().numpy()
+                if np.any(np.isnan(logprobs.detach().cpu().numpy())):
+                    for xx in x_s1.detach().cpu().numpy():
+                        print(xx.shape, np.mean(xx), np.max(xx), np.min(xx), np.nanmax(xx), np.nanmin(xx))
+                    print('DEBUG_LOGPROBS', logprobs)
+                    assert False
+                loss = criterion(logprobs, y_true)
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
+                optimizer.step()
+            '''
             iterator.set_description(f"train loss={loss:.2f}")
             losses.append(loss)
     return torch.stack(losses)
@@ -163,6 +180,7 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
         with tqdm(enumerate(dataloader), total=len(dataloader), position=0, leave=True, disable=True) as iterator:
             
             for idx, batch in iterator:              
+
                            
                 # for only one input
                 if len(args.input_data)==1:
@@ -188,6 +206,14 @@ def validation_epoch(model, dataloader, classes, criterion, args, device='cpu'):
                     else: logprobs = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device))))
                 
                 y_true = y_true.to(device)
+                '''
+                For DEBUGGING only
+                if np.any(np.isnan(logprobs.detach().cpu().numpy())):
+                    print('VALIDATION-DEBUG_LOGPROBS\n', '')
+                    for ii, xx, ll in zip(used_idx, x_s1.detach().cpu().numpy(), logprobs):
+                        print(ii, ll, xx.shape, np.mean(xx), np.max(xx), np.min(xx), np.nanmax(xx), np.nanmin(xx))
+                    assert False
+                '''
                 loss = criterion(logprobs, y_true.to(device))
                 iterator.set_description(f"valid loss={loss:.2f}")
                 losses.append(loss)
