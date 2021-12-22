@@ -95,7 +95,7 @@ def main(args):
         print('Use sample weights', weights_for_samples)
         weights_for_samples = torch.Tensor(weights_for_samples).to(device) 
         #criterion = CrossEntropyLoss(weight=weights_for_samples, reduction="sum") #reduction="mean") 
-        if args.alpha:
+        if args.alpha==1:
             alpha = weights_for_samples
         else:
             alpha = None
@@ -199,7 +199,6 @@ def main(args):
 
                 # calculate metrics
                 scores = metrics(y_true.cpu(), y_pred.cpu())
-                #scores_msg = ", ".join([f"{k}={v:.2f}" for (k, v) in scores.items()])
                 scores["epoch"] = epoch
                 scores["train_loss"] = train_loss
                 scores["valid_loss"] = valid_loss
@@ -499,8 +498,8 @@ if __name__ == '__main__':
     parser.add_argument('--nr-classes', type=int, choices=[5,9], default=5, help='Expected number of classes (S: 5, G: 9)')
     # pool only working for default value!
     parser.add_argument('--pool', type=str, default='mean_std', choices=['mean_std', 'mean', 'std', 'max', 'min'])
-    parser.add_argument('--alpha', action='store_true', default=False)
-    parser.add_argument('--gamma', type=int, default=1)
+    parser.add_argument('--alpha', type=int, default=0, choices=[0,1])
+    parser.add_argument('--gamma', type=float, default=1)
     args = parser.parse_args()
 
     if args.nni:
