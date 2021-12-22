@@ -121,6 +121,7 @@ def main(args):
             
             # training
             best_loss = np.inf
+            best_accuracy = 0
             best_epoch = 0
             patience_count = 0
             all_train_losses = []
@@ -212,8 +213,9 @@ def main(args):
                     #nni.report_intermediate_result(valid_metric)
 
                 # early stopping
-                if valid_loss < best_loss:
+                if scores['accuracy'] > best_accuracy:
                     best_loss = valid_loss
+                    best_accuracy = scores['accuracy']
                     best_epoch = epoch
                     best_model = copy.deepcopy(model)
                     best_optimizer = copy.deepcopy(optimizer)
@@ -224,7 +226,7 @@ def main(args):
 
                 if patience_count == args.patience:
                     print(f'no improvement for {args.patience} epochs -> early stopping')
-                    print(f'best loss: {best_loss:.2f} at epoch: {best_epoch}')
+                    print(f'best loss: {best_loss:.2f} and accuracy: {best_accuracy:.2f} at epoch: {best_epoch}')
                     break
 
                 # save checkpoints
@@ -234,8 +236,8 @@ def main(args):
 
             # nni
             if args.nni:
-                k_best_metrics.append(best_loss)
-                nni.report_intermediate_result(best_loss)
+                k_best_metrics.append(best_accuracy)
+                nni.report_intermediate_result(best_accuracy)
 
             # save best model
             save_model_path = os.path.join(args.target_dir, f'best_model_fold_{fold}.pt') 
@@ -336,8 +338,8 @@ def get_pselatae_model_config(args, verbose=False):
     else:    # sentinel-2
         if args.nr_classes == 5: # south africa
             lms = 76
-        #elif args.nr_classes == 9: # germany
-            #lms = 122 -> check!!!
+        elif args.nr_classes == 9: # germany
+            lms = 44
     
     if len(args.input_data)==1:
         model_config = dict(input_dim = args.input_dim[0], 
@@ -392,7 +394,7 @@ def get_pselatae_model_config(args, verbose=False):
                             T = 1000, 
                             # Maximum sequence length for positional encoding (only necessary if positions == order)
                             len_max_seq_planet = lms, 
-                            len_max_seq_s1 = 41 if args.nr_classes==5 else 122,
+                            len_max_seq_s1 = 41 if args.nr_classes==5 else 122, #144
                             # Positions to use for the positional encoding (bespoke / order)
                             positions = None, #dt.date_positions if config['positions'] == 'bespoke' else None,
                             # Number of neurons in the layers of MLP4
@@ -517,3 +519,4 @@ if __name__ == '__main__':
     args.model_config = model_config
 
     main(args)
+
