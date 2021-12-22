@@ -130,3 +130,16 @@ singularity exec --bind /mnt/lustre02/work/:/work --bind /scratch/k/$USER/singul
 ### Starting NNI trials
 
 TODO - Adapt the script from AI4EO challenge, and take care to add the `--bind /scratch/k/$USER/singularity/cache:/miniconda3/envs/ai4foodsecurity/nni`
+
+## Final submission notebook
+
+Current workaround (20.12.21)
+
+```
+# go to docker directory
+cd ~ai4foodsecurity/docker
+# build the container
+sudo docker build -f Dockerfile-final-south-africa -t eagle-eyes-south-africa ..
+# run
+sudo docker run  -p 8888:8888  eagle-eyes-south-africa jupyter notebook --ip=0.0.0.0 --allow-root
+```

@@ -29,4 +29,6 @@ images/*
 nni/*
 jobs/*
 run_test.sh
+*.pkl
+*.png
 *.pyc

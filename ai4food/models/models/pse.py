@@ -77,6 +77,7 @@ class PixelSetEncoder(nn.Module):
         shape Batch_size x Sequence length x Embedding dimension
         """
         a, b = input
+        
         if len(a) == 2: # extra features included
             out, mask = a
             extra = b
@@ -86,7 +87,6 @@ class PixelSetEncoder(nn.Module):
         else:
             out, mask = a, b
         mask = mask.unsqueeze(1).repeat(1, out.size(1) ,1)
-                
         if len(out.shape) == 4:
             # Combine batch and temporal dimensions in case of sequential input
             reshape_needed = True
