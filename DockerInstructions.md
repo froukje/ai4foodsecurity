@@ -133,13 +133,11 @@ TODO - Adapt the script from AI4EO challenge, and take care to add the `--bind /
 
 ## Final submission notebook
 
-Current workaround (20.12.21)
-
 ```
 # go to docker directory
 cd ~ai4foodsecurity/docker
 # build the container
 sudo docker build -f Dockerfile-final-south-africa -t eagle-eyes-south-africa ..
 # run
-sudo docker run  -p 8888:8888  eagle-eyes-south-africa jupyter notebook --ip=0.0.0.0 --allow-root
+sudo docker run  -p 8888:8888  eagle-eyes-south-africa
 ```
