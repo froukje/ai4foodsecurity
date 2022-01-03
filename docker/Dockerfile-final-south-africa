@@ -69,33 +69,45 @@ kernel_json = f'/usr/local/share/jupyter/kernels/edc-gpu/kernel.json'; \
 update = {'env': {'PATH': new_path}, 'metadata': {'version': '${DOCKER_TAG}'}}; \
 json.dump({**json.load(open(kernel_json)), **update}, open(kernel_json, 'w'), indent=4)"
 
-#	ADD docker/edc.py .
-#	RUN mv edc.py /opt/conda/envs/"${ENV_NAME}"/lib/python*/site-packages
-#	USER $NB_UID
+ADD docker/edc.py .
+RUN mv edc.py /opt/conda/envs/"${ENV_NAME}"/lib/python*/site-packages
+USER $NB_UID
 
-# Add the final notebook
-# Add the best model
-# Make the container automatically exectute the best notebook
-# Commands:
-# COPY ./final_submission/best_model.pt .
 # Final notebook and illustrations
 COPY ./notebooks/final/EagleEyes_SouthAfrica.ipynb .
 COPY ./notebooks/final/fig_south_africa_crop_id_barplot.png .
 COPY ./notebooks/final/fig_south_africa_crop_id_ndvi.png .
 COPY ./notebooks/final/fig_south_africa_predictions_map.png .
-	
-# Source code preprocessing
-COPY ./ai4food/dataloaders/custom_data_transform.py .
-COPY ./ai4food/dataloaders/custom_planet_reader.py .
-COPY ./ai4food/dataloaders/custom_sentinel_1_reader.py .
-COPY ./ai4food/dataloaders/custom_sentinel_2_reader.py .
-COPY ./ai4food/dataloaders/preprocessor.py .
 
+# Source code preprocessing
+COPY ./ai4food/dataloaders/custom_data_transform.py ./ai4food/dataloaders/custom_data_transform.py
+COPY ./ai4food/dataloaders/custom_planet_reader.py ./ai4food/dataloaders/custom_planet_reader.py
+COPY ./ai4food/dataloaders/custom_sentinel_1_reader.py ./ai4food/dataloaders/custom_sentinel_1_reader.py
+COPY ./ai4food/dataloaders/custom_sentinel_2_reader.py ./ai4food/dataloaders/custom_sentinel_2_reader.py
+COPY ./ai4food/dataloaders/preprocessor.py ./ai4food/dataloaders/preprocessor.py
+	
 # Source code model
-COPY ./ai4food/models/models/pse.py .
-COPY ./ai4food/models/models/stclassifier_combined.py .
-COPY ./ai4food/training.py .
-COPY ./ai4food/evaluation_utils.py .
+COPY ./ai4food/models/models/pse.py ./ai4food/models/models/pse.py
+COPY ./ai4food/models/models/stclassifier_combined.py ./ai4food/models/models/stclassifier_combined.py
+COPY ./ai4food/training.py ./ai4food/training.py
+COPY ./ai4food/evaluation_utils.py ./ai4food/evaluation_utils.py
+COPY ./ai4food/focal_loss.py ./ai4food/focal_loss.py
+
+# trained models
+COPY ./final_submission_south_africa/best_model_fold_0.pt ./trained_models/
+COPY ./final_submission_south_africa/best_model_fold_1.pt ./trained_models/
+COPY ./final_submission_south_africa/best_model_fold_2.pt ./trained_models/
+COPY ./final_submission_south_africa/best_model_fold_3.pt ./trained_models/
+COPY ./final_submission_south_africa/best_model_fold_4.pt ./trained_models/
+COPY ./final_submission_south_africa/best_model_fold_5.pt ./trained_models/
+COPY ./final_submission_south_africa/best_model_fold_6.pt ./trained_models/
+COPY ./final_submission_south_africa/best_model_fold_7.pt ./trained_models/
+COPY ./final_submission_south_africa/best_model_fold_8.pt ./trained_models/
+COPY ./final_submission_south_africa/best_model_fold_9.pt ./trained_models/
+
+# submission
+COPY ./final_submission_south_africa/submission.json .
+
 
 ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
 
