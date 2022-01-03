@@ -129,11 +129,43 @@ singularity exec --bind /mnt/lustre02/work/:/work --bind /scratch/k/$USER/singul
 
 ### Starting NNI trials
 
-TODO - Adapt the script from AI4EO challenge, and take care to add the `--bind /scratch/k/$USER/singularity/cache:/miniconda3/envs/ai4foodsecurity/nni`
+Adapt the script from AI4EO challenge, and take care to add the `--bind /scratch/k/$USER/singularity/cache:/miniconda3/envs/ai4foodsecurity/nni`
+
+```
+#SBATCH -J G-tune
+#SBATCH -p amd
+#SBATCH -A ka1176
+#SBATCH --mem=0
+#SBATCH --exclusive
+#SBATCH --time=60:00:00
+
+hostname
+
+module load /sw/spack-amd/spack/modules/linux-centos8-zen2/singularity/3.7.0-gcc-10.2.0
+
+# we will bind the folder /work/ka1176 to /swork in the singularity container
+gitdir_c=/work/ka1176/caroline/gitlab/ai4foodsecurity  # gitlab dir (change this to gitlab directory as it would appear in the container)
+scriptdir_c=/work/ka1176/caroline/jobs/ai4food/nni_planet_sentinel_k-fold # script dir (change this to current directory as it would appear in the container)
+
+# create run script for the job
+echo "echo 'HELLO BOX'" > singularity_run_nni.sh
+echo "gitdir=$gitdir_c" >> singularity_run_nni.sh
+echo "scriptdir=$scriptdir_c" >> singularity_run_nni.sh
+echo "conda init" >> singularity_run_nni.sh
+echo "source ~/.bashrc" >> singularity_run_nni.sh
+echo "conda activate ai4foodsecurity" >> singularity_run_nni.sh
+echo "echo \$gitdir" >> singularity_run_nni.sh
+echo "port=$((8080 + $RANDOM % 10000))" >> singularity_run_nni.sh
+echo "nnictl create -c \$scriptdir/config.yml --port \$port|| nnictl create -c \$scriptdir/config.yml --port \$port|| nnictl create -c \$scriptdir/config.yml --port \$port|| nnictl create -c \$scriptdir/config.yml --port \$port" >> singularity_run_nni.sh
+echo "sleep 59h 50m" >> singularity_run_nni.sh
+echo "nnictl stop" >> singularity_run_nni.sh
+
+
+# execute the singularity container
+singularity exec --nv --bind $scriptdir_c:/home/k/k202141/nni-experiments/ --bind $scriptdir_c:/miniconda3/envs/ai4foodsecurity/nni --bind /mnt/lustre02/work/:/work /work/ka1176/shared_data/singularity/images/ai-4-food-security_nni.sif /bin/bash $scriptdir_c/singularity_run_nni.sh
+```
 
 ## Final submission notebook
-
-Current workaround (20.12.21)
 
 ```
 # go to docker directory
@@ -141,5 +173,5 @@ cd ~ai4foodsecurity/docker
 # build the container
 sudo docker build -f Dockerfile-final-south-africa -t eagle-eyes-south-africa ..
 # run
-sudo docker run  -p 8888:8888  eagle-eyes-south-africa jupyter notebook --ip=0.0.0.0 --allow-root
+sudo docker run  -p 8888:8888  eagle-eyes-south-africa
 ```
