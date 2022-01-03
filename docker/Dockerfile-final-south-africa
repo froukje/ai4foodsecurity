@@ -8,7 +8,7 @@ ENV ENV_NAME=ai4foodsecurity CONDA_DIR=/opt/conda DEBIAN_FRONTEND=noninteractive
 
 COPY ./docker/requirements-submission.txt .
 
-# the base image does not have wget
+# using pip3 here because conda was very slow
 RUN apt-get update && \
     apt-get -y update && \
     apt-get install -y build-essential python3.9 python3-pip python3-dev && \
