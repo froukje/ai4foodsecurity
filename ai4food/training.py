@@ -498,17 +498,13 @@ if __name__ == '__main__':
     parser.add_argument('--nr-classes', type=int, choices=[5,9], default=5, help='Expected number of classes (S: 5, G: 9)')
     # pool only working for default value!
     parser.add_argument('--pool', type=str, default='mean_std', choices=['mean_std', 'mean', 'std', 'max', 'min'])
-<<<<<<< HEAD
     parser.add_argument('--alpha', type=int, default=0, choices=[0,1])
     parser.add_argument('--gamma', type=float, default=1)
-=======
-    parser.add_argument('--alpha', action='store_true', default=False)
     parser.add_argument('--gamma', type=int, default=1)
     # sentinel-2 interpolation
     parser.add_argument('--sentinel-2-spline', type=int, default=1, choices=[1,2,3,4,5], help='Spline for Sentinel 2 interpolation')
     parser.add_argument('--cloud-probability-threshold', type=float, default=0.1, help='Cloud probability threshold for Sentinel 2 interpolation')
     parser.add_argument('--savgol-filter', type=int, default=0, choices=[0, 1], help='Use Savitzky Golay filter for Sentinel 1 RVI smoothing')
->>>>>>> a2a0f290d3d0ffa6ac07a276714f55e567516a4d
     args = parser.parse_args()
 
     if args.nni:
