@@ -4,65 +4,55 @@ ARG DOCKER_TAG
 
 LABEL author="Caroline Arnold (Eagle Eyes) <arnold@dkrz.de>"
 
-ENV ENV_NAME=ai4foodsecurity CONDA_DIR=/opt/conda
+ENV ENV_NAME=ai4foodsecurity CONDA_DIR=/opt/conda DEBIAN_FRONTEND=noninteractive
+
+COPY ./docker/requirements-submission.txt .
 
 # the base image does not have wget
-RUN apt-get update && apt-get -y update && apt-get install -y wget
-
-# install miniconda (using fixed version)
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_4.10.3-Linux-x86_64.sh -O ~/miniconda.sh  && \
-    chmod +x ~/miniconda.sh && \
-    ~/miniconda.sh -b -p $CONDA_DIR  && \
-    rm ~/miniconda.sh
-
-# Assumes the docker build context as the git project root directory
-COPY ./docker/kernel-env-submission.yaml /tmp/
-
-# build the conda environment
-#ENV ENV_PREFIX $PWD/env
-RUN conda update --name base --channel defaults conda && \
-    conda env create --file /tmp/kernel-env-submission.yaml --force && \
-    conda clean --all --yes
-
-# install kernel
-RUN conda run -n "${ENV_NAME}" python -m ipykernel install --name "AI4FoodSecurity" --display-name "AI4FoodSecurity ${DOCKER_TAG} (Python3)"
+RUN apt-get update && \
+    apt-get -y update && \
+    apt-get install -y build-essential python3.9 python3-pip python3-dev && \
+    pip3 -q install pip --upgrade && \
+    pip3 install -r requirements-submission.txt && \
+    rm requirements-submission.txt && \
+    mkdir eagle-eyes-south-africa
+    
+WORKDIR eagle-eyes-south-africa/
 	
-USER $NB_UID
-
 # Final notebook and illustrations
-COPY ./notebooks/final/EagleEyes_SouthAfrica.ipynb .
-COPY ./notebooks/final/fig_south_africa_crop_id_barplot.png .
-COPY ./notebooks/final/fig_south_africa_crop_id_ndvi.png .
-COPY ./notebooks/final/fig_south_africa_predictions_map.png .
+COPY ./notebooks/final/EagleEyes_SouthAfrica.ipynb ./eagle-eyes-south-africa/
+COPY ./notebooks/final/fig_south_africa_crop_id_barplot.png ./eagle-eyes-south-africa/
+COPY ./notebooks/final/fig_south_africa_crop_id_ndvi.png ./eagle-eyes-south-africa/
+COPY ./notebooks/final/fig_south_africa_predictions_map.png ./eagle-eyes-south-africa/
 
 # Source code preprocessing
-COPY ./ai4food/dataloaders/custom_data_transform.py ./ai4food/dataloaders/custom_data_transform.py
-COPY ./ai4food/dataloaders/custom_planet_reader.py ./ai4food/dataloaders/custom_planet_reader.py
-COPY ./ai4food/dataloaders/custom_sentinel_1_reader.py ./ai4food/dataloaders/custom_sentinel_1_reader.py
-COPY ./ai4food/dataloaders/custom_sentinel_2_reader.py ./ai4food/dataloaders/custom_sentinel_2_reader.py
-COPY ./ai4food/dataloaders/preprocessor.py ./ai4food/dataloaders/preprocessor.py
+COPY ./ai4food/dataloaders/custom_data_transform.py ./eagle-eyes-south-africa/ai4food/dataloaders/custom_data_transform.py
+COPY ./ai4food/dataloaders/custom_planet_reader.py ./eagle-eyes-south-africa/ai4food/dataloaders/custom_planet_reader.py
+COPY ./ai4food/dataloaders/custom_sentinel_1_reader.py ./eagle-eyes-south-africa/ai4food/dataloaders/custom_sentinel_1_reader.py
+COPY ./ai4food/dataloaders/custom_sentinel_2_reader.py ./eagle-eyes-south-africa/ai4food/dataloaders/custom_sentinel_2_reader.py
+COPY ./ai4food/dataloaders/preprocessor.py ./eagle-eyes-south-africa/ai4food/dataloaders/preprocessor.py
 	
 # Source code model
-COPY ./ai4food/models/models/pse.py ./ai4food/models/models/pse.py
-COPY ./ai4food/models/models/stclassifier_combined.py ./ai4food/models/models/stclassifier_combined.py
-COPY ./ai4food/training.py ./ai4food/training.py
-COPY ./ai4food/evaluation_utils.py ./ai4food/evaluation_utils.py
-COPY ./ai4food/focal_loss.py ./ai4food/focal_loss.py
+COPY ./ai4food/models/models/pse.py ./eagle-eyes-south-africa/ai4food/models/models/pse.py
+COPY ./ai4food/models/models/stclassifier_combined.py ./eagle-eyes-south-africa/ai4food/models/models/stclassifier_combined.py
+COPY ./ai4food/training.py ./eagle-eyes-south-africa/ai4food/training.py
+COPY ./ai4food/evaluation_utils.py ./eagle-eyes-south-africa/ai4food/evaluation_utils.py
+COPY ./ai4food/focal_loss.py ./eagle-eyes-south-africa/ai4food/focal_loss.py
 
 # trained models
-COPY ./final_submission_south_africa/best_model_fold_0.pt ./trained_models/
-COPY ./final_submission_south_africa/best_model_fold_1.pt ./trained_models/
-COPY ./final_submission_south_africa/best_model_fold_2.pt ./trained_models/
-COPY ./final_submission_south_africa/best_model_fold_3.pt ./trained_models/
-COPY ./final_submission_south_africa/best_model_fold_4.pt ./trained_models/
-COPY ./final_submission_south_africa/best_model_fold_5.pt ./trained_models/
-COPY ./final_submission_south_africa/best_model_fold_6.pt ./trained_models/
-COPY ./final_submission_south_africa/best_model_fold_7.pt ./trained_models/
-COPY ./final_submission_south_africa/best_model_fold_8.pt ./trained_models/
-COPY ./final_submission_south_africa/best_model_fold_9.pt ./trained_models/
+COPY ./final_submission_south_africa/best_model_fold_0.pt ./eagle-eyes-south-africa/trained_models/
+COPY ./final_submission_south_africa/best_model_fold_1.pt ./eagle-eyes-south-africa/trained_models/
+COPY ./final_submission_south_africa/best_model_fold_2.pt ./eagle-eyes-south-africa/trained_models/
+COPY ./final_submission_south_africa/best_model_fold_3.pt ./eagle-eyes-south-africa/trained_models/
+COPY ./final_submission_south_africa/best_model_fold_4.pt ./eagle-eyes-south-africa/trained_models/
+COPY ./final_submission_south_africa/best_model_fold_5.pt ./eagle-eyes-south-africa/trained_models/
+COPY ./final_submission_south_africa/best_model_fold_6.pt ./eagle-eyes-south-africa/trained_models/
+COPY ./final_submission_south_africa/best_model_fold_7.pt ./eagle-eyes-south-africa/trained_models/
+COPY ./final_submission_south_africa/best_model_fold_8.pt ./eagle-eyes-south-africa/trained_models/
+COPY ./final_submission_south_africa/best_model_fold_9.pt ./eagle-eyes-south-africa/trained_models/
 
 # submission
-COPY ./final_submission_south_africa/submission.json .
+COPY ./final_submission_south_africa/submission.json ./eagle-eyes-south-africa/
 
 # Following https://u.group/thinking/how-to-put-jupyter-notebooks-in-a-dockerfile/
 # Add Tini. Tini operates as a process subreaper for jupyter. This prevents kernel crashes.
