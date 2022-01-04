@@ -214,6 +214,12 @@ class Sentinel1Dataset(EarthObservationDataset):
         #self.X[:,:,1,:]=np.clip(self.X[:,:,1,:], 0, 6e-06)
 
         self.X = self.X[:, :, :2, :] # only VV and VH (2) is the angle
+
+        # ! -- Germany test data has different length, cut to to train data length
+        if args.nr_classes == 9 and args.split == 'test':
+            print('Sentinel-1 shape before cut: ', self.X.shape)
+            self.X = self.X[:, 1:-1]
+            print('Sentinel-1 shape after cut (test set germany): ', self.X.shape)
               
         if args.nri:
             nri = Sentinel1Dataset._calc_rvi(self.X, self.args.savgol_filter)
