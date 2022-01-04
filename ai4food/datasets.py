@@ -314,6 +314,19 @@ class PlanetDataset(EarthObservationDataset):
                 self.X = ndvi
             else:
                 self.X = np.concatenate([self.X, ndvi], axis=2) # changed axis from 1 to 2
+
+        if args.nr_classes == 9 and args.vegetation_period: # Germany
+            ix_train_start = 83 # defined as the minimum of NDVI
+            ix_test_start  = 90 # such that NDVI maxima match
+            vg_length      = 180 # length of the vegetation period
+
+            if args.split == 'train':
+                self.X = self.X[:, ix_train_start:ix_train_start + vg_length]
+            elif args.split == 'test':
+                self.X = self.X[:, ix_test:start:ix_test_start + vg_length]
+
+        print('Final shape for Planet image stack', self.X.shape)
+
         '''
         # normalization of datasets min-max
         xmin=np.min(self.X, axis=(0,1,3))
