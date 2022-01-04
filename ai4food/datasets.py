@@ -218,7 +218,7 @@ class Sentinel1Dataset(EarthObservationDataset):
         if args.nri:
             nri = Sentinel1Dataset._calc_rvi(self.X, self.args.savgol_filter)
             nri = np.expand_dims(nri, axis=2) # changed axis from 1 to 2
-            if args.drop_channels:
+            if args.drop_channels or args.drop_channels_sentinel1:
                 self.X = nri
             else:
                 self.X = np.concatenate([self.X, nri], axis=2) 

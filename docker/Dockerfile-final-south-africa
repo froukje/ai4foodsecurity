@@ -31,6 +31,7 @@ COPY ./ai4food/dataloaders/custom_planet_reader.py ./eagle-eyes-south-africa/ai4
 COPY ./ai4food/dataloaders/custom_sentinel_1_reader.py ./eagle-eyes-south-africa/ai4food/dataloaders/custom_sentinel_1_reader.py
 COPY ./ai4food/dataloaders/custom_sentinel_2_reader.py ./eagle-eyes-south-africa/ai4food/dataloaders/custom_sentinel_2_reader.py
 COPY ./ai4food/dataloaders/preprocessor.py ./eagle-eyes-south-africa/ai4food/dataloaders/preprocessor.py
+COPY ./notebooks/data_exploration/DataInflation.ipynb ./eagle-eyes-south-africa/ai4food/dataloaders/DataInflation.ipynb
 	
 # Source code model
 COPY ./ai4food/models/models/pse.py ./eagle-eyes-south-africa/ai4food/models/models/pse.py
