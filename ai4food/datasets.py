@@ -256,7 +256,7 @@ class Sentinel1Dataset(EarthObservationDataset):
 
                 radar_vegetation_index[i, :, j] = smooth_rvi
 
-        print('Applied Savitzky Golay Filter to Sentinel-1 RVI in {time.time() - start_time:.1f} seconds')
+        print(f'Applied Savitzky Golay Filter to Sentinel-1 RVI in {time.time() - start_time:.1f} seconds')
 
         return radar_vegetation_index
 
@@ -328,6 +328,7 @@ class CombinedDataset(Dataset):
                 self.datasets.append(sentinel2_dataset)
         args.input_data = self.input_data 
         for i in range(1, len(self.datasets)):
+            print('Assert dataset shape match', i-1, i)
             assert (self.datasets[i-1].fid==self.datasets[i].fid).all(),'s1, s2 and/or planet not sorted correctly'
     
     def __len__(self):
