@@ -96,6 +96,12 @@ class Sentinel2Dataset(EarthObservationDataset):
 
     cloud_threshold - interpolate values exceeding threshold
 
+    Calculates indices and drops all spectral bands
+
+    NDVI
+    leaf index
+    moisture index
+    drought index
     '''
 
     def __init__(self, args): 
@@ -105,18 +111,32 @@ class Sentinel2Dataset(EarthObservationDataset):
         band_names = ['B01','B02','B03','B04','B05','B06','B07','B08','B8A','B09','B11','B12'] # from AI4EO challenge
 
         # calculate indices
-        ix_B8 = band_names.index('B08')
         ix_B4 = band_names.index('B04')
+        ix_B5 = band_names.index('B05')
+        ix_B8 = band_names.index('B08')
+        ix_B8A = band_names.index('B8A')
+        ix_B11 = band_names.index('B11')
+        ix_B12 = band_names.index('B12')
 
-        ndvi = Sentinel2Dataset._calc_two_band_index(self.X, ix_B8, ix_B4)
+        ndvi = Sentinel2Dataset._calc_two_band_index(self.X, ix_B8, ix_B4) # vegetation
+        nlfi = Sentinel2Dataset._calc_two_band_index(self.X, ix_B8A, ix_B5) # leaf
+        nmoi = Sentinel2Dataset._calc_two_band_index(self.X, ix_B8A, ix_B11) # moisture
+        nbdi = Sentinel2Dataset._calc_three_band_index(self.X, ix_B8A, ix_B11, ix_B12) # multi-band drought
+
 
         # pixel-wise interpolation
         clp = self.X[:, :, -1, :] # cloud probability is attached as the last band
         clp = clp * 1e4 / 255 # transform to clp in [0 ... 1] where 1 = fully covered by clouds
 
-        ndvi = Sentinel2Dataset._interpolate(ndvi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
+        if False:
+            ndvi = Sentinel2Dataset._interpolate(ndvi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
+            nlfi = Sentinel2Dataset._interpolate(nlfi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
+            nmoi = Sentinel2Dataset._interpolate(nmoi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
+            nbdi = Sentinel2Dataset._interpolate(nbdi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
 
-        self.X = ndvi
+        # stack all bands
+        self.X = np.stack([ndvi, nlfi, nmoi, nbdi], axis=2).squeeze()
+        print('Final shape for Sentinel-2 image stack', self.X.shape)
 
     @staticmethod
     def _calc_two_band_index(X, i, j):
