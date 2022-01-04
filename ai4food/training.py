@@ -329,16 +329,17 @@ def get_pselatae_model_config(args, verbose=False):
             lms = 48
         elif args.nr_classes == 9: # germany
             lms = 73
-    elif args.input_data[0]=='sentinel-1':
-        if args.nr_classes == 5: # south africa
-            lms = 41
-        elif args.nr_classes == 9: # germany
-            lms = 118 
-    else:    # sentinel-2
-        if args.nr_classes == 5: # south africa
-            lms = 76
-        elif args.nr_classes == 9: # germany
-            lms = 44
+
+    if args.nr_classes == 5: # south africa
+        lms_sentinel1 = 41
+        lms_sentinel2 = 76
+    elif args.nr_classes == 9: # germany
+        lms_sentinel1 = 118 
+        lms_sentinel2 = 144
+
+    # Treat angles as separate channels -- cut length by 2
+    if args.split_nri:
+        lms_sentinel1 = lms_sentinel1 // 2
     
     if len(args.input_data)==1:
         model_config = dict(input_dim = args.input_dim[0], 
@@ -393,7 +394,7 @@ def get_pselatae_model_config(args, verbose=False):
                             T = 1000, 
                             # Maximum sequence length for positional encoding (only necessary if positions == order)
                             len_max_seq_planet = lms, 
-                            len_max_seq_s1 = 41 if args.nr_classes==5 else 118, 
+                            len_max_seq_s1 = lms_sentinel1,
                             # Positions to use for the positional encoding (bespoke / order)
                             positions = None, #dt.date_positions if config['positions'] == 'bespoke' else None,
                             # Number of neurons in the layers of MLP4
@@ -427,8 +428,8 @@ def get_pselatae_model_config(args, verbose=False):
                             T = 1000, 
                             # Maximum sequence length for positional encoding (only necessary if positions == order) 
                             len_max_seq_planet = lms, 
-                            len_max_seq_s1 = 41 if args.nr_classes==5 else 118,
-                            len_max_seq_s2 = 76 if args.nr_classes==5 else 144,
+                            len_max_seq_s1 = lms_sentinel1,
+                            len_max_seq_s2 = lms_sentinel2, #76 if args.nr_classes==5 else 144,
                             # Positions to use for the positional encoding (bespoke / order)
                             positions = None, #dt.date_positions if config['positions'] == 'bespoke' else None,
                             # Number of neurons in the layers of MLP4
@@ -505,6 +506,8 @@ if __name__ == '__main__':
     parser.add_argument('--sentinel-2-spline', type=int, default=1, choices=[1,2,3,4,5], help='Spline for Sentinel 2 interpolation')
     parser.add_argument('--cloud-probability-threshold', type=float, default=0.1, help='Cloud probability threshold for Sentinel 2 interpolation')
     parser.add_argument('--savgol-filter', type=int, default=0, choices=[0, 1], help='Use Savitzky Golay filter for Sentinel 1 RVI smoothing')
+    parser.add_argument('--split-nri', type=int, default=0, choices=[0, 1], help='Split Sentinel-1 NRI in two channels to account for observation angle')
+    
     args = parser.parse_args()
 
     if args.nni:

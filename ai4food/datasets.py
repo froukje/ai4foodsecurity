@@ -225,9 +225,19 @@ class Sentinel1Dataset(EarthObservationDataset):
             nri = Sentinel1Dataset._calc_rvi(self.X, self.args.savgol_filter)
             nri = np.expand_dims(nri, axis=2) # changed axis from 1 to 2
             if args.drop_channels or args.drop_channels_sentinel1:
-                self.X = nri
+                if args.split_nri: # split into two channels for different angles
+                    if self.args.savgol_filter:
+                        raise ValueError("Do not use Savitzky Golay filter and NRI split together")
+                    nri_odd = nri[:, ::2]
+                    nri_even = nri[:, 1::2]
+                    nri_min_len = min(nri_odd.shape[1], nri_even.shape[1])
+                    self.X = np.concatenate([nri_odd[:, :nri_min_len], nri_even[:, :nri_min_len]], axis=2) 
+                else:
+                    self.X = nri
             else:
                 self.X = np.concatenate([self.X, nri], axis=2) 
+
+        print('Final shape for Sentinel-1 image stack: ', self.X.shape)
 
         '''
         # normalization of datasets min-max
