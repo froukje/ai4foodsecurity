@@ -128,11 +128,10 @@ class Sentinel2Dataset(EarthObservationDataset):
         clp = self.X[:, :, -1, :] # cloud probability is attached as the last band
         clp = clp * 1e4 / 255 # transform to clp in [0 ... 1] where 1 = fully covered by clouds
 
-        if False:
-            ndvi = Sentinel2Dataset._interpolate(ndvi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
-            nlfi = Sentinel2Dataset._interpolate(nlfi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
-            nmoi = Sentinel2Dataset._interpolate(nmoi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
-            nbdi = Sentinel2Dataset._interpolate(nbdi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
+        ndvi = Sentinel2Dataset._interpolate(ndvi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
+        nlfi = Sentinel2Dataset._interpolate(nlfi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
+        nmoi = Sentinel2Dataset._interpolate(nmoi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
+        nbdi = Sentinel2Dataset._interpolate(nbdi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
 
         # stack all bands
         self.X = np.stack([ndvi, nlfi, nmoi, nbdi], axis=2).squeeze()
@@ -323,7 +322,7 @@ class PlanetDataset(EarthObservationDataset):
             if args.split == 'train':
                 self.X = self.X[:, ix_train_start:ix_train_start + vg_length]
             elif args.split == 'test':
-                self.X = self.X[:, ix_test:start:ix_test_start + vg_length]
+                self.X = self.X[:, ix_test_start:ix_test_start + vg_length]
 
         print('Final shape for Planet image stack', self.X.shape)
 
