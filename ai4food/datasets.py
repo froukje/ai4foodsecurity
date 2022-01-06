@@ -14,18 +14,21 @@ class EarthObservationDataset(Dataset):
     '''
     Parent class for Earth Observation Datasets
 
-    args namespace should provide
+    Preprocessed data is loaded from path:
 
-    split : {train, test}
-    fill_value : fill value for masked pixels (e.g. 0 / None)
+    -- in args namespace --
+      dev_data_dir    : file path on mistral, {germany, south africa}
+      input_data[0]   : data source {planet, sentinel-1, sentinel-2}
+      input_data_type : {extracted, extracted-640}
+      split           : {train, test}
 
+      If args.include_extras, the crop_area and crop_len are included for each sample
     '''
 
     def __init__(self, args):
         super().__init__()
         self.args = args
         
-        ### for now only - remove when we have proper path to sentinel-1 data
         self.h5_file = h5py.File(os.path.join(args.dev_data_dir, args.input_data[0], args.input_data_type, f'{args.split}_data.h5'), 'r')
 
         self.X = self.h5_file['image_stack'][:].astype(np.float32)
@@ -36,6 +39,7 @@ class EarthObservationDataset(Dataset):
         if np.sum(np.isnan(self.X)) > 0:
             print('WARNING: Filled NaNs and INFs with 0 in ', os.path.join(args.dev_data_dir, args.input_data[0], args.input_data_type, f'{args.split}_data.h5'))
             self.X = np.nan_to_num(self.X, nan=0, posinf=0, neginf=0)
+
         if args.include_extras:
             labels_path = os.path.join(args.dev_data_dir,'labels_combined.geojson')
             print('Adding extra features from ', labels_path)
@@ -60,6 +64,7 @@ class EarthObservationDataset(Dataset):
         else:
             self.extra_features = None
 
+        # remove a fully masked sample from the Germany training data
         if self.args.nr_classes == 9 and self.args.split == 'train':
             if self.args.input_data_type == 'extracted':
                 bad_idx = [1225]
@@ -80,28 +85,25 @@ class EarthObservationDataset(Dataset):
         label = self.labels[idx]
         mask = self.mask[idx]
         fid = self.fid[idx]
-        #X[:,:,~mask] = self.args.fill_value
         if self.extra_features is not None:
             extra_f = self.extra_features[idx]
         else: extra_f = np.zeros_like(1)
             
         return (X, mask, fid, extra_f), label
-        # for DEBUG use return (X, mask, fid, extra_f), label, idx
 
 class Sentinel2Dataset(EarthObservationDataset):
     '''
     Sentinel 2 Dataset
 
-    args namespace should provide
-
-    cloud_threshold - interpolate values exceeding threshold
-
-    Calculates indices and drops all spectral bands
+    Calculates indices:
 
     NDVI
     leaf index
     moisture index
     drought index
+
+    If args.drop_channels_sentinel2, drop all spectral bands, else keep
+    spectral bands at 10m and 20m spatial resolution
     '''
 
     def __init__(self, args): 
@@ -125,8 +127,9 @@ class Sentinel2Dataset(EarthObservationDataset):
 
 
         # pixel-wise interpolation
-        clp = self.X[:, :, -1, :] # cloud probability is attached as the last band
-        clp = clp * 1e4 / 255 # transform to clp in [0 ... 1] where 1 = fully covered by clouds
+        # Dropped as it did not increase the accuracy
+        #clp = self.X[:, :, -1, :] # cloud probability is attached as the last band
+        #clp = clp * 1e4 / 255 # transform to clp in [0 ... 1] where 1 = fully covered by clouds
 
         #ndvi = Sentinel2Dataset._interpolate(ndvi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
         #nlfi = Sentinel2Dataset._interpolate(nlfi, clp, args.cloud_probability_threshold, args.sentinel_2_spline)
@@ -239,13 +242,20 @@ class Sentinel2Dataset(EarthObservationDataset):
 class Sentinel1Dataset(EarthObservationDataset):
     '''
     Sentinel 1 Dataset
+
+    If args.nri, calculates indices:
+
+    Normalized radar vegetation index (RVI)
+
+    If args.drop_channels_sentinel1, drop all bands
+
+    If args.savgol_filter, smooth the RVI with a Savitzky Golay filter
+
+    If args.split_nri, create two separate RVI channels for each observation angle
     '''
     def __init__(self, args):
         super().__init__(args)
         
-        #self.X[:,:,0,:]=np.clip(self.X[:,:,0,:], 0, 3e-05)
-        #self.X[:,:,1,:]=np.clip(self.X[:,:,1,:], 0, 6e-06)
-
         self.X = self.X[:, :, :2, :] # only VV and VH (2) is the angle
 
         # ! -- Germany test data has different length, cut to to train data length
@@ -314,8 +324,12 @@ class PlanetDataset(EarthObservationDataset):
     '''
     Planet Dataset
 
-    args namespace:
-    ndvi : if TRUE, include the NDVI in a band like fashion
+    If args.ndvi, calculates indices:
+
+    Normalized difference vegetation index (NDVI)
+
+    If args.drop_channels, drop all bands
+
     '''
 
     def __init__(self, args): 
@@ -366,6 +380,10 @@ class PlanetDataset(EarthObservationDataset):
 
     
 class CombinedDataset(Dataset):
+    '''
+    Class for a combined dataset, holds PlanetDataset, Sentinel1Dataset, Sentinel2Dataset
+    as specified by args.input_data
+    '''
     def __init__(self, args): 
         super().__init__()
         self.datasets =[]
@@ -401,6 +419,9 @@ class CombinedDataset(Dataset):
 
     
 class AddGaussianNoise(object):
+    '''
+    Add Gaussian noise to a sample
+    '''
     def __init__(self, mean=0., std=1.):
         self.std = std
         self.mean = mean
