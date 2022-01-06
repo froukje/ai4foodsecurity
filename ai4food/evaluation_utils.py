@@ -232,7 +232,8 @@ def save_reference(data_loader, device, label_ids, label_names, args):
     with torch.no_grad():
         with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True, disable=True) as iterator:
             for idx, batch in iterator:
-                if len(args.input_data)>1: batch=batch[0]
+                if len(args.input_data)>1: 
+                    batch = batch[0]
                 (_, _, fid,_), y_true = batch
                 for i in range(y_true.size()[0]):
                     fid_i = fid[i].view(1,-1)[0]

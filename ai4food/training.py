@@ -475,6 +475,7 @@ if __name__ == '__main__':
     parser.add_argument('--nri', type=int, default=0, choices=[0, 1])
     parser.add_argument('--drop-channels', type=int, default=0, choices=[0, 1]) # if set then ndvi and/or nri also need to be set and input-dim set to 1
     parser.add_argument('--drop-channels-sentinel1', type=int, default=0, choices=[0, 1]) # like drop-channels, but only for sentinel1
+    parser.add_argument('--drop-channels-sentinel2', type=int, default=1, choices=[0, 1]) # like drop-channels, but only for sentinel2 -- default 1 ! --
     parser.add_argument('--fill-value', type=bool, default=0)
     parser.add_argument('--augmentation', type=int, default=0, choices=[0,1]) # add gaussian noise to samples
     # for pseltae model
