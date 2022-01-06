@@ -1,0 +1,60 @@
+FROM ubuntu:20.04
+
+ARG DOCKER_TAG
+
+LABEL author="Caroline Arnold (Eagle Eyes) <arnold@dkrz.de>"
+
+ENV ENV_NAME=ai4foodsecurity CONDA_DIR=/opt/conda DEBIAN_FRONTEND=noninteractive
+
+COPY ./docker/requirements-submission.txt .
+
+# using pip3 here because conda was very slow
+RUN apt-get update && \
+    apt-get -y update && \
+    apt-get install -y build-essential python3.9 python3-pip python3-dev && \
+    pip3 -q install pip --upgrade && \
+    pip3 install -r requirements-submission.txt && \
+    rm requirements-submission.txt && \
+    mkdir eagle-eyes-germany
+    
+WORKDIR eagle-eyes-germany/
+	
+# Final notebook and illustrations
+COPY ./notebooks/final/EagleEyes_Germany.ipynb ./eagle-eyes-germany/
+COPY ./notebooks/final/fig_germany_crop_id_barplot.png ./eagle-eyes-germany/
+COPY ./notebooks/final/fig_germany_crop_id_ndvi.png ./eagle-eyes-germany/
+COPY ./notebooks/final/fig_germany_predictions_map.png ./eagle-eyes-germany/
+
+# Source code preprocessing
+COPY ./ai4food/dataloaders/custom_data_transform.py ./eagle-eyes-germany/ai4food/dataloaders/custom_data_transform.py
+COPY ./ai4food/dataloaders/custom_planet_reader.py ./eagle-eyes-germany/ai4food/dataloaders/custom_planet_reader.py
+COPY ./ai4food/dataloaders/custom_sentinel_1_reader.py ./eagle-eyes-germany/ai4food/dataloaders/custom_sentinel_1_reader.py
+COPY ./ai4food/dataloaders/custom_sentinel_2_reader.py ./eagle-eyes-germany/ai4food/dataloaders/custom_sentinel_2_reader.py
+COPY ./ai4food/dataloaders/preprocessor.py ./eagle-eyes-germany/ai4food/dataloaders/preprocessor.py
+COPY ./notebooks/data_exploration/DataInflation.ipynb ./eagle-eyes-germany/ai4food/dataloaders/DataInflation.ipynb
+	
+# Source code model
+COPY ./ai4food/models/models/pse.py ./eagle-eyes-germany/ai4food/models/models/pse.py
+COPY ./ai4food/models/models/stclassifier_combined.py ./eagle-eyes-germany/ai4food/models/models/stclassifier_combined.py
+COPY ./ai4food/training.py ./eagle-eyes-germany/ai4food/training.py
+COPY ./ai4food/evaluation_utils.py ./eagle-eyes-germany/ai4food/evaluation_utils.py
+COPY ./ai4food/focal_loss.py ./eagle-eyes-germany/ai4food/focal_loss.py
+
+# trained models
+COPY ./final_submission_germany/best_model_fold_0.pt ./eagle-eyes-germany/trained_models/
+COPY ./final_submission_germany/best_model_fold_1.pt ./eagle-eyes-germany/trained_models/
+COPY ./final_submission_germany/best_model_fold_2.pt ./eagle-eyes-germany/trained_models/
+COPY ./final_submission_germany/best_model_fold_3.pt ./eagle-eyes-germany/trained_models/
+COPY ./final_submission_germany/best_model_fold_4.pt ./eagle-eyes-germany/trained_models/
+
+# submission
+COPY ./final_submission_germany/submission.json ./eagle-eyes-germany/
+
+# Following https://u.group/thinking/how-to-put-jupyter-notebooks-in-a-dockerfile/
+# Add Tini. Tini operates as a process subreaper for jupyter. This prevents kernel crashes.
+ENV TINI_VERSION v0.6.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /usr/bin/tini
+RUN chmod +x /usr/bin/tini
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+CMD ["jupyter", "notebook", "--port=8888", "--no-browser", "--ip=0.0.0.0", "--allow-root"]

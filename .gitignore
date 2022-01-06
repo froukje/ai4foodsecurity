@@ -32,3 +32,5 @@ run_test.sh
 *.pkl
 *.png
 *.pyc
+*.pt
+*.txt
