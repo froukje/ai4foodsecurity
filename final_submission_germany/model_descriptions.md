@@ -25,6 +25,7 @@ GERMANY
 * 5-fold cross validation
 * Adam optimizer, lr=1e-3, weight decay = 1e-6
 * Early stopping, monitors validation accuracy
+* Explored combination with Sentinel-1 and Sentinel-2 data, but yielded worse accuracy
 
 ## Inference
 
@@ -60,6 +61,8 @@ SOUTH AFRICA
 * 10-fold cross validation
 * Adam optimizer, lr=1e-3, weight decay = 1e-6
 * Early stopping, monitors validation accuracy
+* Explored combination with Sentinel-2 data, but yielded worse accuracy
+
 
 ## Inference
 
