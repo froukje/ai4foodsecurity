@@ -4,9 +4,12 @@ GERMANY
 ## Preprocessing
 
 * Used Planet data only
-* Rasterize crop fields and randomly extract 640 pixels
-* Augmentation: Create 10 samples of dimension (TIME, BANDS, 64) out of each crop field
-* --> 21520 samples for training / validation
+* Rasterize crop fields 
+* Augmentation
+    * 960 pixels available on average --> randomly extract 640 pixels 
+    * Create 10 samples of dimension (TIME, BANDS, 64) out of each crop field
+    * => 21520 samples
+    * Good use of the high resolution of Planet data
 * Include NDVI as 5th band
 
 ## Model
@@ -40,9 +43,12 @@ SOUTH AFRICA
 
 * Used Planet and Sentinel-1 data
 * Rasterize crop fields and randomly extract 640 pixels
-* Augmentation: Create 10 samples of dimension (TIME, BANDS, 64) out of each crop field
-* --> 41430 samples for training / validation
-* Include NDVI as 5th band (Planet), RVI as 3rd band (Sentinel-1)
+* Augmentation
+    * Randomly extract 640 pixels 
+    * Create 10 samples of dimension (TIME, BANDS, 64) out of each crop field
+    * => 41430 samples
+    * Uses high resolution (Planet)
+* Include NDVI (Planet), RVI (Sentinel-1) as bands
 
 ## Model
 
