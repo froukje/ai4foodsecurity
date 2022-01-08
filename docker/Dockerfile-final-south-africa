@@ -34,11 +34,8 @@ COPY ./ai4food/dataloaders/preprocessor.py ./eagle-eyes-south-africa/ai4food/dat
 COPY ./notebooks/data_exploration/DataInflation.ipynb ./eagle-eyes-south-africa/ai4food/dataloaders/DataInflation.ipynb
 	
 # Source code model
-COPY ./ai4food/models/models/pse.py ./eagle-eyes-south-africa/ai4food/models/models/pse.py
-COPY ./ai4food/models/models/stclassifier_combined.py ./eagle-eyes-south-africa/ai4food/models/models/stclassifier_combined.py
-COPY ./ai4food/training.py ./eagle-eyes-south-africa/ai4food/training.py
-COPY ./ai4food/evaluation_utils.py ./eagle-eyes-south-africa/ai4food/evaluation_utils.py
-COPY ./ai4food/focal_loss.py ./eagle-eyes-south-africa/ai4food/focal_loss.py
+COPY ./ai4food/models/models/*.py ./eagle-eyes-south-africa/ai4food/models/models/
+COPY ./ai4food/*.py ./eagle-eyes-south-africa/ai4food/
 
 # trained models
 COPY ./final_submission_south_africa/best_model_fold_0.pt ./eagle-eyes-south-africa/trained_models/
@@ -54,6 +51,9 @@ COPY ./final_submission_south_africa/best_model_fold_9.pt ./eagle-eyes-south-afr
 
 # submission
 COPY ./final_submission_south_africa/submission.json ./eagle-eyes-south-africa/
+
+# test data
+COPY ./final_submission_south_africa/dev_data ./dev_data
 
 # Following https://u.group/thinking/how-to-put-jupyter-notebooks-in-a-dockerfile/
 # Add Tini. Tini operates as a process subreaper for jupyter. This prevents kernel crashes.
