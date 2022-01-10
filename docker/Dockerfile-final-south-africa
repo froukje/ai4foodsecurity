@@ -52,9 +52,6 @@ COPY ./final_submission_south_africa/best_model_fold_9.pt ./eagle-eyes-south-afr
 # submission
 COPY ./final_submission_south_africa/submission.json ./eagle-eyes-south-africa/
 
-# test data
-COPY ./final_submission_south_africa/dev_data ./dev_data
-
 # Following https://u.group/thinking/how-to-put-jupyter-notebooks-in-a-dockerfile/
 # Add Tini. Tini operates as a process subreaper for jupyter. This prevents kernel crashes.
 ENV TINI_VERSION v0.6.0
