@@ -266,7 +266,10 @@ def save_predictions(target_dir, model, data_loader, device, label_ids, label_na
             if num_folds==1: fold_id = fold_id
             else: fold_id = fold
             save_model_path = os.path.join(args.target_dir, f'best_model_fold_{fold_id}.pt')
-            checkpoint = torch.load(save_model_path)
+            if torch.cuda.is_available():
+                checkpoint = torch.load(save_model_path)
+            else:
+                checkpoint = torch.load(save_model_path, map_location=torch.device('cpu'))
             START_EPOCH = checkpoint["epoch"]
             log = checkpoint["log"]
             model.load_state_dict(checkpoint["model_state"])

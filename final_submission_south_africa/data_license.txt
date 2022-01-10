@@ -1,0 +1,6 @@
+Data processed from 
+
+https://mlhub.earth/data/ref_fusion_competition_south_africa
+
+Planet data CC-BY-SA-2.0 https://creativecommons.org/licenses/by-sa/2.0/de/
+Sentinel-1 data CC-BY-4.0 https://creativecommons.org/licenses/by/4.0/deed.de

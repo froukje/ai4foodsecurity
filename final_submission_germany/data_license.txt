@@ -1,0 +1,5 @@
+Data processed from 
+
+https://mlhub.earth/data/dlr_fusion_competition_germany
+
+Planet data CC-BY-SA-2.0 https://creativecommons.org/licenses/by-sa/2.0/de/
