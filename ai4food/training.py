@@ -166,7 +166,8 @@ def main(args):
             elif len(args.input_data)==2: model = PseLTaeCombinedPlanetS1(**model_config)
             else: model = PseLTaeCombinedPlanetS1S2(**model_config)
             if torch.cuda.is_available():
-                model = model.cuda()   
+                model = model.cuda()  
+ 
             # Initialize model optimizer and loss criterion:
             optimizer = Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay) #, eps=10e-4)
 
@@ -461,6 +462,7 @@ if __name__ == '__main__':
     parser.add_argument('--split', type=str, default='test', choices=['train', 'test']) 
     parser.add_argument('--k-folds', type=int, default=5)
     parser.add_argument('--majority', type=int, default=1, choices=[0,1])
+    parser.add_argument('--avg-samples', type=int, default=0, choices=[0,1])
     parser.add_argument('--nni', action='store_true', default=False)
     parser.add_argument('--save-preds', action='store_true', default=False) 
     parser.add_argument('--save-ref', action='store_true', default=False) 
