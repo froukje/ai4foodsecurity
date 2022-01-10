@@ -232,9 +232,9 @@ def save_reference(data_loader, device, label_ids, label_names, args):
     with torch.no_grad():
         with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True, disable=True) as iterator:
             for idx, batch in iterator:
-                if len(args.input_data)>1: 
-                    batch = batch[0]
-                (_, _, fid,_), y_true = batch
+                if len(args.input_data)==1: 
+                    (_, _, fid,_), y_true = batch[0]
+                else: (_, _, fid,_), y_true = batch
                 for i in range(y_true.size()[0]):
                     fid_i = fid[i].view(1,-1)[0]
                     output_list.append({'fid': fid_i.cpu().detach().numpy()[0],
@@ -278,53 +278,60 @@ def save_predictions(target_dir, model, data_loader, device, label_ids, label_na
 
             # list of dictionaries with predictions:
             output_list=[]
+            
+            # if we are using extracted-640 data then we can average over 10 samples for each crop or just use one sample
+            if args.avg_samples:
+                num_samples_per_crop = 10
+            else:
+                num_samples_per_crop = 1
 
             with torch.no_grad():
                 with tqdm(enumerate(data_loader), total=len(data_loader), position=0, leave=True, disable=True) as iterator:
                     for idx, batch in iterator:
-                        
-                        if len(args.input_data)==1:
-                            (x_p, mask, fid, extra_features), _ = batch[0]
-                            
-                            if args.include_extras: 
-                                logits = model(((x_p.to(device), mask.to(device)), extra_features.to(device)))  
-                            else: 
-                                logits = model((x_p.to(device), mask.to(device)))
-                        # for combined model - current implementation wo extra features
-                        elif len(args.input_data)==2:
-                            sample_planet, sample_s1 = batch
-                            (x_p, mask_p, fid, extra_features), _ = sample_planet
-                            (x_s1, mask_s1, _, _), _ = sample_s1
+                        for ext_id in range(num_samples_per_crop):
+                            if len(args.input_data)==1:
+                                (x_p, mask, fid, extra_features), _ = batch[0]
 
-                            if args.include_extras:
-                                logits = model((((x_p.to(device), mask_p.to(device)), extra_features.to(device)),
-                                                ((x_s1.to(device), mask_s1.to(device)), extra_features.to(device))))
-                            else:
-                                logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device))))
-                        elif len(args.input_data)==3:
-                            sample_planet, sample_s1, sample_s2 = batch
-                            (x_p, mask_p, fid, extra_features), _ = sample_planet
-                            (x_s1, mask_s1, _, _), _ = sample_s1
-                            (x_s2, mask_s2, _, _), _ = sample_s2
-                            if args.include_extras: 
-                                logits = model((((x_p.to(device), mask_p.to(device)), extra_features.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device)))) 
-                            else:
-                                logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device))))           
-                        
-                        batch_s = x_p.size(0)
-                        for i in range(logits.size()[0]):
-                            logits_i = logits[i].view(1,-1)
-                            predicted_probabilities = softmax(logits_i).cpu().detach().numpy()[0]
-                            probs_array[idx*batch_s+i] += predicted_probabilities # idx*batch_s:(idx*batch_s)+batch_s
+                                if args.include_extras: 
+                                    logits = model(((x_p.to(device)[:,:,:,64*ext_id:64*(ext_id+1)], mask.to(device)[:,64*ext_id:64*(ext_id+1)]), extra_features.to(device)))  
+                                else: 
+                                    logits = model((x_p.to(device)[:,:,:,64*ext_id:64*(ext_id+1)], mask.to(device)[:,64*ext_id:64*(ext_id+1)]))
+                            # for combined model - current implementation wo extra features
+                            elif len(args.input_data)==2:
+                                sample_planet, sample_s1 = batch
+                                (x_p, mask_p, fid, extra_features), _ = sample_planet
+                                (x_s1, mask_s1, _, _), _ = sample_s1
+                                if args.include_extras:
+                                    logits = model((((x_p.to(device)[:,:,:,64*ext_id:64*(ext_id+1)], mask_p.to(device)[:,64*ext_id:64*(ext_id+1)]), extra_features.to(device)),
+                                                    ((x_s1.to(device)[:,:,:,64*ext_id:64*(ext_id+1)], mask_s1.to(device)[:,64*ext_id:64*(ext_id+1)]), extra_features.to(device))))
+                                else:
+                                    logits = model(((x_p.to(device)[:,:,:,64*ext_id:64*(ext_id+1)], mask_p.to(device)[:,64*ext_id:64*(ext_id+1)]), (x_s1.to(device)[:,:,:,64*ext_id:64*(ext_id+1)], mask_s1.to(device)[:,64*ext_id:64*(ext_id+1)])))
                             
-                            if fold==(num_folds-1):
-                                probs_array_ids=probs_array[idx*batch_s+i]/(num_folds-not_found)
-                                fid_i = fid[i].view(1,-1)[0]
-                                predicted_class = np.argmax(probs_array_ids)
-                                output_list.append({'fid': fid_i.cpu().detach().numpy()[0],
-                                            'crop_id': label_ids[predicted_class],
-                                            'crop_name': label_names[predicted_class],
-                                            'crop_probs': np.array(probs_array_ids)})
+                            # not implemented average of samples
+                            elif len(args.input_data)==3:
+                                sample_planet, sample_s1, sample_s2 = batch
+                                (x_p, mask_p, fid, extra_features), _ = sample_planet
+                                (x_s1, mask_s1, _, _), _ = sample_s1
+                                (x_s2, mask_s2, _, _), _ = sample_s2
+                                if args.include_extras: 
+                                    logits = model((((x_p.to(device), mask_p.to(device)), extra_features.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device)))) 
+                                else:
+                                    logits = model(((x_p.to(device), mask_p.to(device)), (x_s1.to(device), mask_s1.to(device)), (x_s2.to(device), mask_s2.to(device))))           
+
+                            batch_s = x_p.size(0)
+                            for i in range(logits.size()[0]):
+                                logits_i = logits[i].view(1,-1)
+                                predicted_probabilities = softmax(logits_i).cpu().detach().numpy()[0]
+                                probs_array[idx*batch_s+i] += predicted_probabilities # idx*batch_s:(idx*batch_s)+batch_s
+
+                                if fold==(num_folds-1) and ext_id==(num_samples_per_crop-1):
+                                    probs_array_ids=probs_array[idx*batch_s+i]/((num_folds-not_found)*num_samples_per_crop)
+                                    fid_i = fid[i].view(1,-1)[0]
+                                    predicted_class = np.argmax(probs_array_ids)
+                                    output_list.append({'fid': fid_i.cpu().detach().numpy()[0],
+                                                'crop_id': label_ids[predicted_class],
+                                                'crop_name': label_names[predicted_class],
+                                                'crop_probs': np.array(probs_array_ids)})
 
         else:
             print(f"INFO: no best model found for fold {fold_id}")

@@ -108,7 +108,7 @@ class Sentinel2Dataset(EarthObservationDataset):
 
     def __init__(self, args): 
         super().__init__(args)
-
+        
         # Sentinel-2 Band Information
         band_names = ['B01','B02','B03','B04','B05','B06','B07','B08','B8A','B09','B11','B12'] # from AI4EO challenge
 
@@ -154,6 +154,7 @@ class Sentinel2Dataset(EarthObservationDataset):
                                ndvi, nlfi, nmoi, nbdi], axis=2).squeeze()
         print('Final shape for Sentinel-2 image stack', self.X.shape)
 
+        
     @staticmethod
     def _calc_two_band_index(X, i, j):
         '''
